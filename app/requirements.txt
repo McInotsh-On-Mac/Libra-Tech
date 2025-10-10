@@ -1,0 +1,20 @@
+# API wrappers
+praw
+tweepy
+
+# Plotting and visualization
+matplotlib
+
+# NLP and Sentiment Analysis
+nltk
+pyspellchecker
+langdetect
+
+# Database
+psycopg2-binary
+
+# Encryption
+cryptography
+
+# Environment variable loader
+python-dotenv
