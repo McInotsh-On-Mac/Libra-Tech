@@ -1,63 +1,67 @@
-# Tweetables
-Sentimental Analysis on X
-# Tweetables
+# Libra-Tech
+
+**Sentimental Analysis on X**
 
 ## **Description**
-This is an application that uses Twitter data in order to build a sentiment analysis system.
+Libra-Tech is a Python application that leverages Twitter (X) data to perform sentiment analysis.
+The user can search for tweets related to a movie, fetch real-time results, and analyze the overall sentiment.
 
 ## **Table of Contents**
-1)  Tools
-    
-2)  How to Install and Run
-    
-3) How to Use
-    
-4)  How it works
-    
-5) Credits
+1) [Tools](#tools)
+2) [Installation](#installation)
+3) [How To Use](#how-it-works)
+4) [How It Works](#how-it-works)
+5) [Credits](#credits)
+
 
 ## 1) **Tools**
 - Visual Studio Code
 - X (Twitter)
 - X developer tools: X's Standard Search API, OAuth 2.0
 
-## 2) **How to Install and Run**
-	How to install the application:
-Download Visual Studio Code
-Download Python 3.7
-Download the zip file that contains all the files
-How to run the application: 
-Open the dist file in the zipped packet
-Inside the folder click on the Main.exe file
-In the login screen, enter admin in the username section, for the password section enter password.
-Once the user interface pops up, enter the movie that you wish to search for in the white box. 
-Press the fetch tweets button to fetch tweets related to the movie that you entered into the interface.
-If you want to analyze the sentiment of the tweets related to the movie that you entered into the interface, press the analyze sentiment button.
+## Installation
 
+1. **Prerequisites:**
+   - Python 3.7 or higher
+   - Visual Studio Code (recommended)
+
+2. **Setup:**
+   - Download or clone this repository.
+   - Install dependencies:
+     ```bash
+     pip install -r requirements.txt
+     ```
+   - Configure your X (Twitter) API credentials (see `.env.example`).
+
+3. **Run the Application:**
+   - Open the project folder in Visual Studio Code.
+   - Run the main script or launch the executable (if provided).
+   - For Windows users, you may use `Main.exe` in the `dist` folder for a packaged version.
 
 ## 3) **How to Use**
-Run Application in visual studio code
-Login or sign up depending on current status
-Enter a movie title
-On the following screen click "fetch tweets" after populating what you are looking for 
-Click "Analyize Sentiment" to see the scoring
-Record sentiment analysis score on desired subject matter 
-Exit out of application once done searching for topics 
+1. Launch the application.
+2. Login (username: `admin`, password: `password` for demo).
+3. Enter a movie title or subject in the search box.
+4. Click **Fetch Tweets** to get related tweets.
+5. Click **Analyze Sentiment** to see the sentiment analysis results.
+6. View and export the results as needed.
 
 
 ## 4) **How it works**
 
-- Open the app and login into personal account 
-- User enters keywords/hashtags and this sends the request to backend
-- X’s api fetches tweets and converts text to lowercase
-- Sentiment score is given as well as labeled and placed in correct category 
-- Results are then finally displayed and export option are given 
+- User enters keywords/hashtags.
+- The backend sends a request to X’s API and fetches tweets.
+- Text is processed and normalized.
+- Sentiment scores are computed and categorized.
+- Results are displayed in the UI, with export options.
+
 
 ## 5) **Credits**
-- Sydney Johnson 
-- Micaiah Steplight 
-- Amir Crutchfield
-- Isaac Stinnette 
-- Ada Bulgur 
+- Jania Southall 
+- Elali McNair
+- Sebastian McIntosh
+- Benjamin Herron
+- Ryan Grimes
+- Anthony Powell
 
 
