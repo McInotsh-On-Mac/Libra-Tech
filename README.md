@@ -14,7 +14,7 @@ The user can search for tweets related to a movie, fetch real-time results, and 
 5) [Credits](#credits)
 
 
-## 1) **Tools**
+## Tools
 - Visual Studio Code
 - X (Twitter)
 - X developer tools: X's Standard Search API, OAuth 2.0
@@ -38,7 +38,7 @@ The user can search for tweets related to a movie, fetch real-time results, and 
    - Run the main script or launch the executable (if provided).
    - For Windows users, you may use `Main.exe` in the `dist` folder for a packaged version.
 
-## 3) **How to Use**
+## How to Use
 1. Launch the application.
 2. Login (username: `admin`, password: `password` for demo).
 3. Enter a movie title or subject in the search box.
@@ -47,7 +47,7 @@ The user can search for tweets related to a movie, fetch real-time results, and 
 6. View and export the results as needed.
 
 
-## 4) **How it works**
+## How it works
 
 - User enters keywords/hashtags.
 - The backend sends a request to X’s API and fetches tweets.
@@ -56,7 +56,7 @@ The user can search for tweets related to a movie, fetch real-time results, and 
 - Results are displayed in the UI, with export options.
 
 
-## 5) **Credits**
+## Credits
 - Jania Southall 
 - Elali McNair
 - Sebastian McIntosh
