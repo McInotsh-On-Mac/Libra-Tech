@@ -9,8 +9,8 @@ The user can search for tweets related to a movie, fetch real-time results, and 
 ## **Table of Contents**
 1) [Tools](#tools)
 2) [Installation](#installation)
-3) [How To Use](#how-it-works)
-4) [How It Works](#how-it-works)
+3) [How To Use](#howitworks)
+4) [How It Works](#howitworks)
 5) [Credits](#credits)
 
 
