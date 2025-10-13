@@ -1,78 +1,64 @@
-import tweepy
-import sys
-import re
-from twitter_setup import client
-import langdetect
-from langdetect import detect, LangDetectException 
+# --- FILE: fetch_tweets.py ---
 
-print("fetch_tweets.py has started running...")
+# Imports the necessary files and tools.
+import sys # Tool to access system functions, specifically to read the keyword argument.
+import os # Tool to manage file paths.
+import csv # Tool for reading and writing data in a structured CSV format.
+# Imports the Twitter API objects (client, api) created in the setup file.
+from twitter_setup import client 
 
-def remove_emojis(tweet_text):
-    #remove emohies using regex pattern (unicode ranges for emojies)
-    return re.sub(r'[^\x00-\x7F]+', '', tweet_text)
+# Defines the name of the file where the raw tweets will be saved.
+OUTPUT_FILE = "raw_tweets.txt" 
+# Defines the number of tweets to fetch per query (a common practice for rate limiting).
+MAX_TWEETS_PER_QUERY = 100 
 
-def is_english(tweet_text):
-    try:
-        #detect language
-        return detect(tweet_text) == 'en'
-    except LangDetectException:
-        return False #if detection fails, consider it not english
+# Check if the movie keyword was provided when the script was run.
+if len(sys.argv) < 2:
+    print("Error: No search keyword provided.")
+    sys.exit(1) # Stops the script and reports an error.
+
+# The keyword passed from the main application is the second argument (index 1).
+movie_keyword = sys.argv[1] 
+
+# The Twitter search query needs to specify the language and filter out retweets.
+# 'lang:en' ensures only English tweets are returned.
+query = f"{movie_keyword} -is:retweet lang:en" 
+
+print(f"Searching Twitter (X) for: '{movie_keyword}'...") # Status update for the GUI.
+
+try:
+    # Use the Twitter API v2 Client (the modern standard) to search for tweets.
+    # The search query is run, requesting the maximum number of tweets allowed per call.
+    response = client.search_recent_tweets(
+        query=query, 
+        max_results=MAX_TWEETS_PER_QUERY
+    )
+
+    # Initialize a list to hold the text of all fetched tweets.
+    tweets = []
     
-def fetch_tweets_v2(keyword, count=10):
-    """ Fetch tweets based on a keyword and display them """
-    try:
-        count = max(1, min(count, 10))
-        # Fetch tweets with the provided keyword
-        response = client.search_recent_tweets(query=keyword, max_results=100)
+    # Check if the response contains any data.
+    if response.data:
+        # Loop through each individual tweet object in the data.
+        for tweet in response.data:
+            # We only need the text content for sentiment analysis.
+            tweets.append(tweet.text)
         
-        raw_tweets = []
-        seen_tweets = set()
-        shown = 0
-
-        if response and response.data:
-            print(f"\nFetched tweets for keyword: '{keyword}'\n")
-
-            for tweet in response.data:
-                if shown >= count:
-                    break
-
-                text = tweet.text.strip()
-                text = remove_emojis(text)
-
-                if not text or not is_english(text) or text in seen_tweets:
-                    continue #skip if the tweet is not in english or duplicate
-                
-                text_one_line = text.replace("\n", " ")
-                raw_tweets.append(text_one_line)
-                seen_tweets.add(text_one_line)
-                shown += 1
-
-            if not raw_tweets:
-                print("No suitable English tweets found.")
-                return
-                
-                # save the files open file
-            with open("raw_tweets.txt", "w", encoding="utf-8") as file:
-                for tweet in raw_tweets:
-                    file.write(tweet + "\n")
-
-            # Print aligned and numbered output
-            print("Tweets Fetched:\n")
-            max_digits = len(str(len(raw_tweets)))
-            for i, tweet in enumerate(raw_tweets, 1):
-                num_str = f"{i}".rjust(max_digits)
-                print(f"{num_str}. {tweet}")
-            print("\nAll tweets saved to 'raw_tweets.txt'.\n")
-
-        else:
-            print("No tweets found.")
-    except Exception as e:
-        print(f"Error fetching tweets: {e}")
-
-if __name__ == "__main__":
-    # Check if a keyword is passed as a command line argument
-    if len(sys.argv) > 1:
-        keyword = sys.argv[1]  # Get the keyword passed from the command line
-        fetch_tweets_v2(keyword)
+        # --- File Saving Logic ---
+        # Opens the output file for writing, ensuring existing content is overwritten (w).
+        with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
+            # Writes each collected tweet text onto a new line in the file.
+            for tweet_text in tweets:
+                f.write(tweet_text + "\n")
+        
+        # Success status update for the main GUI.
+        print(f"Successfully fetched and saved {len(tweets)} tweets to '{OUTPUT_FILE}'.")
+    
     else:
-        print("No keyword provided.")
+        # If the search was successful but returned no tweets.
+        print(f"No tweets found for the keyword: '{movie_keyword}'.")
+        
+except Exception as e:
+    # Handles any network or API connection errors.
+    print(f"An error occurred during Twitter fetching: {e}")
+    sys.exit(1) # Stops the script on failure.

@@ -1,25 +1,30 @@
-import nltk
-import re
-import string
-from nltk.corpus import stopwords, words
-from nltk.stem import WordNetLemmatizer
-from nltk import word_tokenize, pos_tag
-from nltk.corpus import wordnet
-from spellchecker import SpellChecker
+import nltk # Imports the Natural Language Toolkit, a core library for analyzing text.
+import re # Imports a tool for searching and manipulating strings (like removing links).
+import string # Imports a list of standard punctuation characters.
+from nltk.corpus import stopwords, words # Imports lists of common words (like 'the', 'a') and the entire English dictionary.
+from nltk.stem import WordNetLemmatizer # Imports a tool to reduce words to their base form (e.g., 'running' -> 'run').
+from nltk import word_tokenize, pos_tag # Imports tools to break sentences into words and identify their grammatical role (noun, verb, etc.).
+from nltk.corpus import wordnet # Imports a large lexical database used by the lemmatizer.
+from spellchecker import SpellChecker # Imports a tool to check and suggest corrections for misspelled words.
+import sys # Imports a tool to access system functions (used for arguments, but mainly for clean execution here).
+
 
 # Initialize tools and vocab
-stop_words = set(stopwords.words('english'))
-lemmatizer = WordNetLemmatizer()
+stop_words = set(stopwords.words('english')) # Loads the list of very common English words we want to ignore.
+lemmatizer = WordNetLemmatizer() # Creates the tool that finds the base form of words.
+# Loads the entire English vocabulary for checking if a word is real.
 english_vocab = set(w.lower() for w in words.words())
-spell = SpellChecker()
+spell = SpellChecker() # Creates the tool that checks spelling.
 
 # Slang whitelist and shorthand map
-slang_whitelist = {"u", "dm", "rn", "pls", "idk", "lol", "brb", "gtg", "lmao", "omg", "tbh", "afaik", "imho"}
+# A list of common social media abbreviations that we should NOT try to correct or remove.
+slang_whitelist = {"u", "dm", "rn", "plz" ,"pls", "idk", "lol", "brb", "gtg", "lmao", "omg", "tbh", "ngl", "afaik", "i0mho", "imo"}
 shorthand_map = {
     "u": "you",
     "dm": "direct message",
     "rn": "right now",
     "pls": "please",
+    "plz": "please",
     "idk": "i don't know",
     "lol": "laugh out loud",
     "gtg": "got to go",
@@ -27,11 +32,15 @@ shorthand_map = {
     "lmao": "laughing my ass off",
     "omg": "oh my god",
     "tbh": "to be honest",
+    "ngl": "not gonna lie",
     "afaik": "as far as i know",
-    "imho": "in my humble opinion"
+    "imho": "in my humble opinion",
+    "imo": "in my opinion"
 }
 
 #sentiment dictionary
+# This dictionary assigns a positive or negative score to various keywords.
+# Scores range from 5 (Strong Positive) to -5 (Strong Negative).
 sentiment_dict = {
     # Strong Positive Words
    "masterpiece": 5, "blockbuster": 5, "must-watch": 5, "award-worthy": 5, "oscar-worthy": 5, 
@@ -110,71 +119,81 @@ sentiment_dict = {
 
 }
 
-# Function to get wordnet POS tags
+# Function to translate a standard grammatical tag (from NLTK) into a format the lemmatizer understands.
 def get_wordnet_pos(treebank_tag):
-    if treebank_tag.startswith('J'):
+    if treebank_tag.startswith('J'): # J means Adjective
         return wordnet.ADJ
-    elif treebank_tag.startswith('V'):
+    elif treebank_tag.startswith('V'): # V means Verb
         return wordnet.VERB
-    elif treebank_tag.startswith('N'):
+    elif treebank_tag.startswith('N'): # N means Noun
         return wordnet.NOUN
-    elif treebank_tag.startswith('R'):
+    elif treebank_tag.startswith('R'): # R means Adverb
         return wordnet.ADV
     else:
-        return wordnet.NOUN
+        return wordnet.NOUN # Defaults to Noun if the role is unclear.
 
 # Function to clean the tweet
 def clean_tweet(tweet):
-    tweet = tweet.lower()
+    tweet = tweet.lower() # Converts all text to lowercase for consistent processing.
+
 
     # Step 1: Replace shorthand terms first
+    # Looks for and replaces shorthand (like 'lol') with the full meaning before removing punctuation.
     for word, replacement in shorthand_map.items():
         tweet = re.sub(rf'\b{re.escape(word)}\b', replacement, tweet)
 
     # Step 2: Remove URLs, RTs, mentions, hashtags, digits, punctuation
-    tweet = re.sub(r'rt\s+', '', tweet)
-    tweet = re.sub(r'http\S+|www\S+|https\S+', '', tweet)
-    tweet = re.sub(r'#\w+', '', tweet)
-    tweet = re.sub(r'@\w+', '', tweet)
-    tweet = re.sub(r'\d+', '', tweet)
-    tweet = re.sub(r'[^\w\s]', '', tweet)
-    tweet = re.sub(r'\s+', ' ', tweet).strip()
+    tweet = re.sub(r'rt\s+', '', tweet) # Removes Twitter-specific 'RT' (retweet) markers.
+    tweet = re.sub(r'http\S+|www\S+|https\S+', '', tweet) # Removes web links (URLs).
+    tweet = re.sub(r'#\w+', '', tweet) # Removes hashtags (the # symbol and the word).
+    tweet = re.sub(r'@\w+', '', tweet) # Removes user mentions (the @ symbol and the username).
+    tweet = re.sub(r'\d+', '', tweet) # Removes all numbers (digits).
+    tweet = re.sub(r'[^\w\s]', '', tweet) # Removes all remaining punctuation.
+    tweet = re.sub(r'\s+', ' ', tweet).strip() # Removes extra spaces created during the cleanup.
 
     # Step 3: Tokenize
-    tokens = word_tokenize(tweet)
+    tokens = word_tokenize(tweet) # Breaks the cleaned sentence into a list of individual words (tokens).
 
     # Step 4: Remove custom blacklisted words
-    blacklist = {'aku', 'gama'}
-    tokens = [word for word in tokens if word not in blacklist]
+    blacklist = {'aku', 'gama'} # Defines specific words to be blocked (e.g., non-English words).
+    tokens = [word for word in tokens if word not in blacklist] # Filters out the blacklisted words.
 
     # Step 5: POS tagging and lemmatization
-    pos_tags = pos_tag(tokens)
+    pos_tags = pos_tag(tokens) # Identifies the grammatical role (Part-of-Speech, POS) of each word.
     cleaned_tokens = []
+    
+    # Loop through each word and its grammatical tag.
     for word, tag in pos_tags:
+        # If the word is a whitelisted slang term, skip the processing and keep it as is.
         if word in slang_whitelist:
             cleaned_tokens.append(word)
             continue
 
-        wordnet_pos = get_wordnet_pos(tag)
-        lemma = lemmatizer.lemmatize(word, wordnet_pos)
+        wordnet_pos = get_wordnet_pos(tag) # Finds the correct POS tag format for the lemmatizer.
+        lemma = lemmatizer.lemmatize(word, wordnet_pos) # Reduces the word to its base form ('running' -> 'run').
 
+        # Final check: only keeps words that meet these conditions:
         if (
-            lemma not in stop_words and
-            (len(lemma) > 1 or lemma in shorthand_map) and
+            lemma not in stop_words and # 1. It's not a common stop word (like 'is', 'at').
+            (len(lemma) > 1 or lemma in shorthand_map) and # 2. It's longer than 1 letter (or it was a known shorthand).
+            # 3. It's a real English word OR the spelling is already correct.
             (lemma in english_vocab or spell.correction(lemma) == lemma)
         ):
-            cleaned_tokens.append(lemma)
+            cleaned_tokens.append(lemma) # Adds the final, cleaned word to the list.
 
-    return cleaned_tokens
+    return cleaned_tokens # Returns the final list of analysis-ready words.
 
-#format cleaned tokens for writing
-def format_cleaned_text(tokens):
+# Function to reassemble the cleaned words back into a sentence.def format_cleaned_text(tokens):
     return ' '.join(tokens)
 
+# Function to calculate the sentiment score for a list of words.
 def analyze_sentiment(tokens):
     score = 0
     for token in tokens:
+        # Looks up the word in the dictionary and adds its score (0 if not found).
         score += sentiment_dict.get(token, 0)
+    
+    # Classifies the overall score into a simple label (Positive, Negative, Neutral).
     if score > 0:
         return "Positive", score
     elif score < 0:
@@ -183,17 +202,24 @@ def analyze_sentiment(tokens):
         return "Neutral", score
 
 # Load and clean tweets
-with open("raw_tweets.txt", "r", encoding="utf-8") as f:
-    raw_tweets = list(set(line.strip() for line in f if line.strip()))
+try:
+    # Opens the file where the raw tweets (fetched by fetch_tweets.py) are stored.
+    with open("raw_tweets.txt", "r", encoding="utf-8") as f:
+        # Reads all tweets, removes duplicates (using set), and puts them in a list.
+        raw_tweets = list(set(line.strip() for line in f if line.strip()))
+except FileNotFoundError:
+    print("Error: 'raw_tweets.txt' not found. Please run tweet fetching first.")
+    sys.exit(1) # Stops the program if the file isn't there.
 
 # Analyze and prepare results
-output_lines = []
-cleaned_tweet_lines = []
+output_lines = [] # List to hold the final formatted analysis results.
+cleaned_tweet_lines = [] # List to hold just the cleaned text for saving.
 
+# Loop through every single raw tweet loaded from the file.
 for raw in raw_tweets:
-    cleaned_tokens = clean_tweet(raw)
-    cleaned_text = format_cleaned_text(cleaned_tokens)
-    sentiment_label, sentiment_score = analyze_sentiment(cleaned_tokens)
+    cleaned_tokens = clean_tweet(raw) # 1. Cleans the tweet and gets a list of words.
+    cleaned_text = format_cleaned_text(cleaned_tokens) # 2. Re-joins the cleaned words into a sentence.
+    sentiment_label, sentiment_score = analyze_sentiment(cleaned_tokens) # 3. Calculates the score and label.
 
     # Prepare formatted line
     result_line = f"RAW: {raw}\nCLEANED: {cleaned_text}\nSENTIMENT: {sentiment_label} (Score: {sentiment_score})\n{'-'*50}"
@@ -213,4 +239,5 @@ with open("tweet_analysis_results.txt", "w", encoding="utf-8") as f:
     for line in output_lines:
         f.write(line + "\n")
 
+# Prints a final status message to the GUI.
 print("Analysis complete! Full results saved to 'tweet_analysis_results.txt'.")
