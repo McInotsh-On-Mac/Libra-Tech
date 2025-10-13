@@ -53,3 +53,23 @@ def initialize_tables():
     );
     """
     execute_query(user_table)
+    
+    sentiment_table = """
+    CREATE TABLE IF NOT EXISTS sentiments (
+        tweet_id SERIAL PRIMARY KEY,
+        score INT NOT NULL, 
+        label VACHAR(255)
+    );
+    """
+    execute_query(sentiment_table)
+
+    tweets_table = """
+    CREATE TABLE IF NOT EXISTS tweets (
+        tweet_id SERIAL PRIMARY KEY,
+        user_id INT NOT NULL,
+        content VARCHAR(255),
+        timestamp TIMESTAMP
+    );
+    """
+    execute_query(tweets_table)
+    
