@@ -64,10 +64,51 @@ class SentimentAnalysisApp: # Defines the blueprint for the main application win
     
     # ... (open_fetch_tweets and open_sentiment_analysis methods remain as stubs)
     
-    def open_fetch_tweets(self): # Placeholder function for when the "Fetch Tweets" button is clicked.
-        # TODO(Ben): (Backend Tweets/Sentiment API): Implement fetching tweets from DB/API and displaying in UI. # Note for the developer team.
-        pass # Currently does nothing until the backend script is fully linked.
-    
+    def open_fetch_tweets(self): # Function for when the "Fetch Tweets" button is clicked.
+        keyword = self.keyword_entry.get().strip()
+
+        if not keyword:
+            messagebox.showwarning("Input Required", "Please enter a keyword to search for tweets.")
+            return
+        
+        try:
+            # Disable button during fetch to prevent multiple clicks
+            self.search_button.config(state='disabled')
+            self.append_output(f"Fetching tweets for keyword: '{keyword}'...")
+            
+            # Import and call the UI-friendly fetch function
+            from .fetch_tweets import fetch_tweets_for_ui
+            
+            # Call the fetch function and get results
+            result = fetch_tweets_for_ui(keyword, count=10)
+            
+            # Display results based on success/failure
+            if result['success']:
+                self.append_output(result['message'])
+                self.append_output("-" * 50)
+                
+                # Display each tweet with numbering
+                for i, tweet in enumerate(result['tweets'], 1):
+                    self.append_output(f"{i}. {tweet}")
+                    self.append_output("")  # Add empty line for readability
+                    
+                self.append_output("-" * 50)
+                self.append_output(f"Total tweets fetched: {result['count']}")
+            else:
+                self.append_output(result['message'])
+                
+        except ImportError as ie:
+            error_msg = f"Import error: {str(ie)}"
+            self.append_output(error_msg)
+            messagebox.showerror("Import Error", error_msg)
+        except Exception as e:
+            error_msg = f"Error fetching tweets: {str(e)}"
+            self.append_output(error_msg)
+            messagebox.showerror("Error", f"Failed to fetch tweets: {str(e)}")
+        finally:
+            # Re-enable button after operation completes
+            self.search_button.config(state='normal')
+
     def open_sentiment_analysis(self): # Placeholder function for when the "Analyze Sentiment" button is clicked.
         # TODO(Ben): (Sentiment Analysis Logic): Implement logic to analyze sentiment and store/retrieve results in DB. # Note for the developer team.
         # TODO(Testing Point-Anthony): (UI Integration): Ensure UI displays results from analysis. # Note for the developer team.
