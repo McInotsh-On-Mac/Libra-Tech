@@ -8,6 +8,9 @@ from supabase import create_client
 from langdetect import detect, LangDetectException
 from .db import get_db_connection
 
+
+
+
 # Initialize Supabase client
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
@@ -62,7 +65,7 @@ def fetch_tweets_v2(keyword, count=10):
                 print("No suitable English tweets found.")
                 return
                 
-            store_tweet_in_db(text_one_line)  # Store tweet in DB
+            store_tweet_in_db(tweet)  # Store tweet in DB
 
             # Print aligned and numbered output
             print("Tweets Fetched:\n")
@@ -78,12 +81,17 @@ def fetch_tweets_v2(keyword, count=10):
         print(f"Error fetching tweets: {e}")
 
 
-def store_tweet_in_db(text, user_id=None):
-    # Person 2: Store tweet using Supabase
-    data = {"text": text}
-    if user_id:
-        data["user_id"] = user_id
+def store_tweet_in_db(tweet):
+    data = {
+        "tweet_id": tweet.id,
+        "user_id": tweet.user_id,
+        "content": tweet.text,
+        "timestamp": str(tweet.timestamp)
+    }
     supabase.table("tweets").insert(data).execute()
+    print(f"Stored tweet {tweet.id} in database.")
+
+
 
 def fetch_tweets_for_ui(keyword, count=10):
     """
@@ -109,21 +117,16 @@ def fetch_tweets_for_ui(keyword, count=10):
             for tweet in response.data:
                 if shown >= count:
                     break
-
                 text = tweet.text.strip()
                 text = remove_emojis(text)
-
                 if not text or not is_english(text) or text in seen_tweets:
-                    continue #skip if the tweet is not in english or duplicate
-                
+                    continue
                 text_one_line = text.replace("\n", " ")
                 raw_tweets.append(text_one_line)
                 seen_tweets.add(text_one_line)
                 shown += 1
-                
-                # Store each tweet in DB
                 try:
-                    store_tweet_in_db(text_one_line)
+                    store_tweet_in_db(tweet)
                 except Exception as db_error:
                     print(f"Database storage error: {db_error}")
 
