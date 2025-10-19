@@ -227,13 +227,13 @@ class SentimentAnalysisApp:
         score = round((pos - neg) / total, 2)
 
         # section header
-        self.output_text.insert(tk.END, "\nanalysis summary\n", "title")
+        self.output_text.insert(tk.END, "\nAnalysis Summary:\n", "title")
         self.output_text.insert(tk.END, "—" * 16 + "\n", "muted")
 
         # numbers + verdict
-        verdict = "overall positive" if score > 0 else "overall negative" if score < 0 else "mixed/neutral"
+        verdict = "Overall Positive" if score > 0 else "Overall Negative" if score < 0 else "mixed/neutral"
         verdict_tag = "pos" if score >= 0 else "neg"
-        self.append_output(f"positives={pos}, negatives={neg}, score={score}", verdict_tag)
+        self.append_output(f"Positives={pos}, Negatives={neg}, Score={score}", verdict_tag)
 
         # simple ascii bar
         bar_len = 24
