@@ -1,11 +1,20 @@
 import tweepy
 import sys
 import re
-from twitter_setup import client
+from .twitter_setup import client
 import langdetect
+import os
+from supabase import create_client
 from langdetect import detect, LangDetectException
 from .db import get_db_connection
 
+
+
+
+# Initialize Supabase client
+supabase_url = os.getenv("SUPABASE_URL")
+supabase_key = os.getenv("SUPABASE_KEY")
+supabase = create_client(supabase_url, supabase_key)
 
 print("fetch_tweets.py has started running...")
 #TODO: Refactor to be modular for UI integration
@@ -56,10 +65,7 @@ def fetch_tweets_v2(keyword, count=10):
                 print("No suitable English tweets found.")
                 return
                 
-            #TODO: Store tweets in DB 
-            with open("raw_tweets.txt", "w", encoding="utf-8") as file:
-                for tweet in raw_tweets:
-                    file.write(tweet + "\n")
+            store_tweet_in_db(tweet)  # Store tweet in DB
 
             # Print aligned and numbered output
             print("Tweets Fetched:\n")
@@ -75,19 +81,75 @@ def fetch_tweets_v2(keyword, count=10):
         print(f"Error fetching tweets: {e}")
 
 
-def store_tweet_in_db(text, user_id=None):
-    # TODO(Elali): Implement logic to store tweet in the database.
-    pass
+def store_tweet_in_db(tweet):
+    data = {
+        "tweet_id": tweet.id,
+        "user_id": tweet.user_id,
+        "content": tweet.text,
+        "timestamp": str(tweet.timestamp)
+    }
+    supabase.table("tweets").insert(data).execute()
+    print(f"Stored tweet {tweet.id} in database.")
 
-def fetch_and_store_tweets(keyword, count=10, user_id=None):
-    # TODO: Integrate with UI, fetch tweets, store in DB, and return list for display.
-    pass
+
+
+def fetch_tweets_for_ui(keyword, count=10):
+    """
+    Fetch tweets for UI display - returns a dictionary with results and status
+    """
+    result = {
+        'success': False,
+        'tweets': [],
+        'message': '',
+        'count': 0
+    }
+    
+    try:
+        count = max(1, min(count, 10))
+        # Fetch tweets with the provided keyword
+        response = client.search_recent_tweets(query=keyword, max_results=10)
+        
+        raw_tweets = []
+        seen_tweets = set()
+        shown = 0
+
+        if response and response.data:
+            for tweet in response.data:
+                if shown >= count:
+                    break
+                text = tweet.text.strip()
+                text = remove_emojis(text)
+                if not text or not is_english(text) or text in seen_tweets:
+                    continue
+                text_one_line = text.replace("\n", " ")
+                raw_tweets.append(text_one_line)
+                seen_tweets.add(text_one_line)
+                shown += 1
+                try:
+                    store_tweet_in_db(tweet)
+                except Exception as db_error:
+                    print(f"Database storage error: {db_error}")
+
+            if raw_tweets:
+                result['success'] = True
+                result['tweets'] = raw_tweets
+                result['count'] = len(raw_tweets)
+                result['message'] = f"Successfully fetched {len(raw_tweets)} tweets for '{keyword}'"
+            else:
+                result['message'] = f"No suitable English tweets found for keyword '{keyword}'"
+        else:
+            result['message'] = f"No tweets found for keyword '{keyword}'"
+            
+    except Exception as e:
+        result['message'] = f"Error fetching tweets: {str(e)}"
+        
+    return result
 
 # should be removed after refactor
 if __name__ == "__main__":
     # Check if a keyword is passed as a command line argument
     if len(sys.argv) > 1:
         keyword = sys.argv[1]  # Get the keyword passed from the command line
-        fetch_tweets_v2(keyword)
+        fetch_tweets_for_ui(keyword)
     else:
         print("No keyword provided.")

@@ -1,10 +1,12 @@
-import tkinter as tk
-from tkinter import messagebox
-import psycopg2
-import os
-import bcrypt
-from .sentiment_app import SentimentAnalysisApp
-from .db import get_db_connection
+import tkinter as tk # Tkinter is used to build graphical user interfaces (GUIs) in Python.
+from tkinter import messagebox #Used to show popup messages (like alerts).
+import psycopg2 # Import the psycopg2 library to connect and interact with PostgreSQL databases.
+import os #Lets Python interact with the operating system (like reading files or paths).
+import bcrypt # Ssafely encrypts and checks passwords.
+from .sentiment_app import SentimentAnalysisApp #Allows the program to open that app after a successful login.
+from .db import get_db_connection # Import the function that connects to the database from another file in this project.
+
+# ---------------------- VISUAL DESIGN SETTINGS ----------------------
 
 # Define Brand Colors 
 BRAND_DARK_BLUE = "#1A237E"  # This dark blue color is used for primary text and buttons.
@@ -15,7 +17,7 @@ WHITE_TEXT = "#FFFFFF"  # White text for better contrast on dark backgrounds.
 # (Ryan): (Login Page UI Redesign)
 class LoginScreen:
     def __init__(self, master):  # This function runs when the Login window is created.
-        self.master = master
+        self.master = master # Save the window reference for use in other parts of the class.
         self.master.title("LIBRA TECHNOLOGIES: Secure Login")  # Sets the title text at the top of the window.
         self.master.geometry("1000x700")  # Increased the window size for better visibility.
         self.master.configure(bg=LIGHT_GRAY_BG)  # Sets the entire window's background color to light gray.
@@ -66,6 +68,8 @@ class LoginScreen:
                                        bg="#CCCCCC", fg="#1A237E", activebackground=WHITE_TEXT, padx=30, pady=10, relief=tk.FLAT)
         self.signup_button.grid(row=0, column=1, padx=20)
 
+    # ---------------------- LOGIN VALIDATION FUNCTION ----------------------
+    
     # (Sebastian): Add functionality for validating login credentials
     def validate_login(self):
         username = self.username_entry.get()
@@ -78,6 +82,8 @@ class LoginScreen:
             self.username_entry.delete(0, tk.END)
             self.password_entry.delete(0, tk.END)
 
+    # ---------------------- DATABASE CREDENTIAL CHECK FUNCTION ----------------------
+    
     # (Sebastian): Add functionality for checking credentials in the database
     def check_credentials(self, username, password):
         try:
@@ -94,6 +100,8 @@ class LoginScreen:
             self.message_label.config(text="Database error", fg="red")
         return False
 
+    # ---------------------- SIGN-UP WINDOW FUNCTION ----------------------    
+    
     def open_signup(self):  # This function handles opening the separate Sign Up window.
         signup_window = tk.Toplevel(self.master)
         signup_window.title("Sign Up")
@@ -147,6 +155,8 @@ class LoginScreen:
 
         signup_button = tk.Button(frame, text="Sign Up", command=save_credentials, font=("Arial", 12), bg="white", fg="black", padx=10, pady=5)
         signup_button.grid(row=2, columnspan=2, pady=10)
+
+# ---------------------- OPEN SENTIMENT ANALYSIS APP ----------------------
 
     def open_sentiment_analysis(self):
         self.master.destroy()

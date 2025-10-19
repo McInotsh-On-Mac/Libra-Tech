@@ -1,6 +1,7 @@
 
 import tkinter as tk # Imports the main library for creating graphical windows.
 from tkinter import messagebox # Imports a tool for simple alert messages.
+from fetch_tweets import fetch_tweets_for_ui
 
 # Define Brand Colors (For a professional, branded look)
 BRAND_DARK_BLUE = "#1A237E" # Primary color for buttons and titles.
@@ -64,11 +65,25 @@ class SentimentAnalysisApp: # Defines the blueprint for the main application win
     
     # ... (open_fetch_tweets and open_sentiment_analysis methods remain as stubs)
     
-    def open_fetch_tweets(self): # Placeholder function for when the "Fetch Tweets" button is clicked.
-        # TODO(Ben): (Backend Tweets/Sentiment API): Implement fetching tweets from DB/API and displaying in UI. # Note for the developer team.
-        pass # Currently does nothing until the backend script is fully linked.
-    
+    def open_fetch_tweets(self):
+        keyword = self.keyword_entry.get().strip()
+        if not keyword:
+            messagebox.showwarning("Input Error", "Please enter a movie keyword.")
+            return
+
+        self.append_output(f"Fetching tweets for: {keyword} ...")
+        try:
+            result = fetch_tweets_for_ui(keyword, count=10)
+            if result['success']:
+                self.append_output("Fetched Tweets:")
+                for tweet in result['tweets']:
+                    self.append_output(tweet)
+                else:
+                    self.append_output(result['message'])
+        except Exception as e:
+            self.append_output(f"Error: {e}")
+
     def open_sentiment_analysis(self): # Placeholder function for when the "Analyze Sentiment" button is clicked.
-        # TODO(Ben): (Sentiment Analysis Logic): Implement logic to analyze sentiment and store/retrieve results in DB. # Note for the developer team.
+        # TODO(Elali): (Sentiment Analysis Logic): Implement logic to analyze sentiment and store/retrieve results in DB. # Note for the developer team.
         # TODO(Testing Point-Anthony): (UI Integration): Ensure UI displays results from analysis. # Note for the developer team.
         pass # Currently does nothing until the analysis script is fully linked.
