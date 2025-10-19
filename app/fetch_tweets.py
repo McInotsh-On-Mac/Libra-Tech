@@ -1,155 +1,156 @@
+import os
 import tweepy
 import sys
 import re
+import time
+from dotenv import load_dotenv
+
+# load local .env
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
+
 from .twitter_setup import client
-import langdetect
-import os
 from supabase import create_client
 from langdetect import detect, LangDetectException
-from .db import get_db_connection
 
-
-
-
-# Initialize Supabase client
+# Initialize Supabase client (fail fast if missing)
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
+if not supabase_url or not supabase_key:
+    print("Missing SUPABASE_URL or SUPABASE_KEY in .env")
 supabase = create_client(supabase_url, supabase_key)
 
-print("fetch_tweets.py has started running...")
-#TODO: Refactor to be modular for UI integration
+print("fetch_tweets.py started")
 
 def remove_emojis(tweet_text):
-    #remove emohies using regex pattern (unicode ranges for emojies)
-    return re.sub(r'[^\x00-\x7F]+', '', tweet_text)
-
+    return re.sub(r'[^\x00-\x7F]+', '', tweet_text or "")
 
 def is_english(tweet_text):
     try:
-        #detect language
         return detect(tweet_text) == 'en'
     except LangDetectException:
-        return False #if detection fails, consider it not english
-    
-def fetch_tweets_v2(keyword, count=10):
-    # TODO: refactor this into fetch_and_store_tweets()
-    """ Fetch tweets based on a keyword and display them """
+        return False
+
+def safe_store_tweet_in_db(text, tweet_id=None, user_id=None, timestamp=None):
     try:
-        count = max(1, min(count, 10))
-        # Fetch tweets with the provided keyword
-        response = client.search_recent_tweets(query=keyword, max_results=10)
-        
-        raw_tweets = []
-        seen_tweets = set()
-        shown = 0
+        # ensure user exists or skip/upsert as required (existing logic)
+        data = {"content": text}
+        if tweet_id is not None:
+            data["tweets__id"] = str(tweet_id)   # <- write to the new column
+        if user_id is not None:
+            data["user_id"] = str(user_id)
+        if timestamp is not None:
+            data["timestamp"] = str(timestamp)
 
-        if response and response.data:
-            print(f"\nFetched tweets for keyword: '{keyword}'\n")
-
-            for tweet in response.data:
-                if shown >= count:
-                    break
-
-                text = tweet.text.strip()
-                text = remove_emojis(text)
-
-                if not text or not is_english(text) or text in seen_tweets:
-                    continue #skip if the tweet is not in english or duplicate
-                
-                text_one_line = text.replace("\n", " ")
-                raw_tweets.append(text_one_line)
-                seen_tweets.add(text_one_line)
-                shown += 1
-
-            if not raw_tweets:
-                print("No suitable English tweets found.")
-                return
-                
-            store_tweet_in_db(tweet)  # Store tweet in DB
-
-            # Print aligned and numbered output
-            print("Tweets Fetched:\n")
-            max_digits = len(str(len(raw_tweets)))
-            for i, tweet in enumerate(raw_tweets, 1):
-                num_str = f"{i}".rjust(max_digits)
-                print(f"{num_str}. {tweet}")
-            print("\nAll tweets saved to 'raw_tweets.txt'.\n")
-
-        else:
-            print("No tweets found.")
+        print(f"[DB] inserting tweets__id={tweet_id} ...")
+        res = supabase.table("tweets").insert(data).execute()
+        print("[DB] insert response:", res)
+        if getattr(res, "error", None):
+            print("[DB] error attr:", res.error)
+            return False
+        if isinstance(res, dict) and res.get("error"):
+            print("[DB] dict error:", res["error"])
+            return False
+        return True
     except Exception as e:
-        print(f"Error fetching tweets: {e}")
+        print("[DB] Exception while inserting:", e)
+        return False
 
-
-def store_tweet_in_db(tweet):
-    data = {
-        "tweet_id": tweet.id,
-        "user_id": tweet.user_id,
-        "content": tweet.text,
-        "timestamp": str(tweet.timestamp)
-    }
-    supabase.table("tweets").insert(data).execute()
-    print(f"Stored tweet {tweet.id} in database.")
-
-
-
-def fetch_tweets_for_ui(keyword, count=10):
+def fetch_tweets_for_ui(keyword, count=10, max_api_pages=1, api_wait_seconds=1):
     """
-    Fetch tweets for UI display - returns a dictionary with results and status
+    Bounded fetch with debug prints. Returns dict {'success','tweets','message','count'}.
+    max_api_pages controls pagination; default 1 prevents long loops.
     """
-    result = {
-        'success': False,
-        'tweets': [],
-        'message': '',
-        'count': 0
-    }
-    
+    print(f"[FETCH] start for keyword='{keyword}' count={count}")
+    result = {'success': False, 'tweets': [], 'message': '', 'count': 0}
+    if not keyword or not keyword.strip():
+        result['message'] = "No keyword provided."
+        return result
+
     try:
-        count = max(1, min(count, 10))
-        # Fetch tweets with the provided keyword
-        response = client.search_recent_tweets(query=keyword, max_results=10)
-        
-        raw_tweets = []
-        seen_tweets = set()
-        shown = 0
+        count = max(1, min(int(count), 100))
+    except Exception:
+        count = 10
 
-        if response and response.data:
-            for tweet in response.data:
-                if shown >= count:
-                    break
-                text = tweet.text.strip()
-                text = remove_emojis(text)
-                if not text or not is_english(text) or text in seen_tweets:
+    collected = []
+    seen = set()
+    next_token = None
+    pages = 0
+
+    try:
+        while len(collected) < count and pages < max_api_pages:
+            pages += 1
+            print(f"[FETCH] API request page {pages} next_token={next_token}")
+            try:
+                # request - include tweet_fields to get ids and author
+                resp = client.search_recent_tweets(
+                    query=keyword,
+                    max_results=min(100, max(10, count)),
+                    tweet_fields=["id", "text", "created_at", "author_id"],
+                    next_token=next_token
+                )
+            except Exception as api_e:
+                print("[FETCH] API call exception:", api_e)
+                result['message'] = f"API error: {api_e}"
+                return result
+
+            print("[FETCH] API call returned, checking data...")
+            if not resp or not getattr(resp, "data", None):
+                print("[FETCH] no data in response")
+                break
+
+            for t in resp.data:
+                text = getattr(t, "text", "") or ""
+                text = remove_emojis(text).strip()
+                if not text:
                     continue
-                text_one_line = text.replace("\n", " ")
-                raw_tweets.append(text_one_line)
-                seen_tweets.add(text_one_line)
-                shown += 1
-                try:
-                    store_tweet_in_db(tweet)
-                except Exception as db_error:
-                    print(f"Database storage error: {db_error}")
+                if not is_english(text):
+                    continue
+                one_line = text.replace("\n", " ")
+                if one_line in seen:
+                    continue
+                seen.add(one_line)
 
-            if raw_tweets:
-                result['success'] = True
-                result['tweets'] = raw_tweets
-                result['count'] = len(raw_tweets)
-                result['message'] = f"Successfully fetched {len(raw_tweets)} tweets for '{keyword}'"
+                # attempt DB store but do not fail the whole run if DB fails
+                try:
+                    stored = safe_store_tweet_in_db(one_line, tweet_id=getattr(t, "id", None),
+                                                    user_id=getattr(t, "author_id", None),
+                                                    timestamp=getattr(t, "created_at", None))
+                    if not stored:
+                        print("[FETCH] DB store returned False (continuing)")
+                except Exception as db_e:
+                    print("[FETCH] DB exception (ignored):", db_e)
+
+                collected.append(one_line)
+                print(f"[FETCH] collected {len(collected)}/{count}")
+                if len(collected) >= count:
+                    break
+
+            # handle pagination token if present
+            meta = getattr(resp, "meta", None)
+            next_token = None
+            if meta and isinstance(meta, dict):
+                next_token = meta.get("next_token")
+            pages += 0  # pages count already incremented at loop start
+
+            if next_token:
+                print(f"[FETCH] next_token present, waiting {api_wait_seconds}s before next page")
+                time.sleep(api_wait_seconds)
             else:
-                result['message'] = f"No suitable English tweets found for keyword '{keyword}'"
+                print("[FETCH] no next_token, finishing")
+                break
+
+        if collected:
+            result.update({'success': True, 'tweets': collected, 'count': len(collected),
+                           'message': f"Fetched {len(collected)} tweets for '{keyword}'"})
         else:
-            result['message'] = f"No tweets found for keyword '{keyword}'"
-            
+            result['message'] = f"No suitable tweets found for '{keyword}'."
     except Exception as e:
-        result['message'] = f"Error fetching tweets: {str(e)}"
-        
+        print("[FETCH] unexpected exception:", e)
+        result['message'] = f"Unexpected error: {e}"
+
+    print("[FETCH] finished:", result.get('message'))
     return result
 
-# should be removed after refactor
 if __name__ == "__main__":
-    # Check if a keyword is passed as a command line argument
-    if len(sys.argv) > 1:
-        keyword = sys.argv[1]  # Get the keyword passed from the command line
-        fetch_tweets_for_ui(keyword)
-    else:
-        print("No keyword provided.")
+    # quick debug run
+    print(fetch_tweets_for_ui("test", count=5, max_api_pages=1))

@@ -1,8 +1,16 @@
+<<<<<<< HEAD
 import tkinter as tk
 from tkinter import messagebox
 import datetime  # For timestamps
 import requests  # For API calls
 from .fetch_tweets import fetch_tweets_for_ui
+=======
+
+import tkinter as tk # Imports the main library for creating graphical windows.
+from tkinter import messagebox # Imports a tool for simple alert messages.
+from .fetch_tweets import fetch_tweets_for_ui
+
+>>>>>>> b2a9e4a631c046e5b7822d6a9580239fbc7eddbe
 
 # Define Brand Colors (For a professional, branded look)
 BRAND_DARK_BLUE = "#1A237E"  # Original brand blue (still used for title)
