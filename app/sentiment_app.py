@@ -1,7 +1,8 @@
 
 import tkinter as tk # Imports the main library for creating graphical windows.
 from tkinter import messagebox # Imports a tool for simple alert messages.
-from fetch_tweets import fetch_tweets_for_ui
+from .fetch_tweets import fetch_tweets_for_ui
+
 
 # Define Brand Colors (For a professional, branded look)
 BRAND_DARK_BLUE = "#1A237E" # Primary color for buttons and titles.
