@@ -17,6 +17,7 @@ supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
 if not supabase_url or not supabase_key:
     print("Missing SUPABASE_URL or SUPABASE_KEY in .env")
+    exit(1)
 supabase = create_client(supabase_url, supabase_key)
 
 print("fetch_tweets.py started")
@@ -30,29 +31,36 @@ def is_english(tweet_text):
     except LangDetectException:
         return False
 
-def safe_store_tweet_in_db(text, tweet_id=None, user_id=None, timestamp=None):
+def safe_store_tweet_in_db(text, sequential_id, user_id=None, timestamp=None):
     try:
-        # ensure user exists or skip/upsert as required (existing logic)
-        data = {"content": text}
-        if tweet_id is not None:
-            data["tweets__id"] = str(tweet_id)   # <- write to the new column
+        # Build data object for Supabase insertion
+        data = {
+            "content": text,
+            "tweet_id": sequential_id  # <- Fixed: use "tweet_id" to match Supabase schema
+        }
+        
         if user_id is not None:
             data["user_id"] = str(user_id)
         if timestamp is not None:
             data["timestamp"] = str(timestamp)
 
-        print(f"[DB] inserting tweets__id={tweet_id} ...")
+        print(f"[DB] inserting tweet_id={sequential_id} ...")
         res = supabase.table("tweets").insert(data).execute()
-        print("[DB] insert response:", res)
-        if getattr(res, "error", None):
-            print("[DB] error attr:", res.error)
+        
+        # Check for errors in Supabase response
+        if hasattr(res, 'error') and res.error:
+            print(f"[DB] Supabase error: {res.error}")
             return False
+        
         if isinstance(res, dict) and res.get("error"):
-            print("[DB] dict error:", res["error"])
+            print(f"[DB] Dict error: {res['error']}")
             return False
+            
+        print(f"[DB] Successfully inserted tweet_id={sequential_id}")
         return True
+        
     except Exception as e:
-        print("[DB] Exception while inserting:", e)
+        print(f"[DB] Exception while inserting: {e}")
         return False
 
 def fetch_tweets_for_ui(keyword, count=10, max_api_pages=1, api_wait_seconds=1):
@@ -75,6 +83,7 @@ def fetch_tweets_for_ui(keyword, count=10, max_api_pages=1, api_wait_seconds=1):
     seen = set()
     next_token = None
     pages = 0
+    sequential_counter = 1  # Initialize sequential counter
 
     try:
         while len(collected) < count and pages < max_api_pages:
@@ -112,7 +121,7 @@ def fetch_tweets_for_ui(keyword, count=10, max_api_pages=1, api_wait_seconds=1):
 
                 # attempt DB store but do not fail the whole run if DB fails
                 try:
-                    stored = safe_store_tweet_in_db(one_line, tweet_id=getattr(t, "id", None),
+                    stored = safe_store_tweet_in_db(one_line, sequential_counter,
                                                     user_id=getattr(t, "author_id", None),
                                                     timestamp=getattr(t, "created_at", None))
                     if not stored:
@@ -121,6 +130,7 @@ def fetch_tweets_for_ui(keyword, count=10, max_api_pages=1, api_wait_seconds=1):
                     print("[FETCH] DB exception (ignored):", db_e)
 
                 collected.append(one_line)
+                sequential_counter += 1  # Increment counter for next tweet
                 print(f"[FETCH] collected {len(collected)}/{count}")
                 if len(collected) >= count:
                     break
@@ -130,7 +140,6 @@ def fetch_tweets_for_ui(keyword, count=10, max_api_pages=1, api_wait_seconds=1):
             next_token = None
             if meta and isinstance(meta, dict):
                 next_token = meta.get("next_token")
-            pages += 0  # pages count already incremented at loop start
 
             if next_token:
                 print(f"[FETCH] next_token present, waiting {api_wait_seconds}s before next page")
