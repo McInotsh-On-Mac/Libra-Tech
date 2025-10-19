@@ -1,3 +1,4 @@
+#Ayinde Hooks - Sentiment Analysis UI with Enhanced Accessibility
 # basic gui libs
 import tkinter as tk
 from tkinter import messagebox
