@@ -74,16 +74,19 @@ def initialize_tables():
     execute_query(tweets_table)
 
     Tweets_table = """
-    CREATE TABLE IF NOT EXISTS Tweets (
-        tweet_id SERIAL PRIMARY KEY,
-        user_id SERIAL PRIMARY KEY,
-        content VARCHAR(255),
-        timestamp TIMESTAMP,
-        text text,
-        tweets__id text,
-        local_id SERIAL PRIMARY KEY,
-        score INT NOT NULL,
-        label VARCHAR(255),
+    CREATE TABLE movie_sentiment_history (
+        id SERIAL PRIMARY KEY, -- Auto-incrementing primary key
+        movie_name VARCHAR(255) NOT NULL,
+        overall_sentiment VARCHAR(255) NOT NULL,
+        total_tweets_analyzed INTEGER NOT NULL DEFAULT 0,
+        positive_count INTEGER NOT NULL DEFAULT 0,
+        negative_count INTGER NOT NULL DEFAULT 0,
+        neutral_count INTEGER NOT NULL DEFAULT 0,
+        positive_percentage DECIMAL (5,2) NOT NULL DEFAULT 0.0,
+        negative_percentage DECIMAL (5,2) NOT NULL DEFAULT 0.0,
+        neutral_percentage DECIMAL (5,2) NOT NULL DEFAULT 0.0,
+        sentiment_score DECIMAL (8,3) NOT NULL DEFAULT 0.0,
+        analyzed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     );
     """
     execute_query(Tweets_table)
