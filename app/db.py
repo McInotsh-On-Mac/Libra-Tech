@@ -84,5 +84,8 @@ def initialize_tables():
         local_id SERIAL PRIMARY KEY,
         score INT NOT NULL,
         label VARCHAR(255),
-        """
+    );
+    """
+    execute_query(Tweets_table)
+    
     
