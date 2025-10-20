@@ -69,40 +69,43 @@ class LoginScreen:
         self.signup_button.grid(row=0, column=1, padx=20)
 
     # ---------------------- LOGIN VALIDATION FUNCTION ----------------------
-    
-    # (Sebastian): Add functionality for validating login credentials
+
+    # (Sebastian): Validates the login credentials entered by the user
     def validate_login(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
+
         if self.check_credentials(username, password):
             self.message_label.config(text="Login successful!", fg="green")
-            self.open_sentiment_analysis()
+            self.open_sentiment_analysis()  # Open the sentiment analysis app on success
         else:
             self.message_label.config(text="Invalid username or password", fg="red")
-            self.username_entry.delete(0, tk.END)
-            self.password_entry.delete(0, tk.END)
+            self.username_entry.delete(0, tk.END)  # Clear the username field
+            self.password_entry.delete(0, tk.END)  # Clear the password field
 
     # ---------------------- DATABASE CREDENTIAL CHECK FUNCTION ----------------------
-    
-    # (Sebastian): Add functionality for checking credentials in the database
+
+    # (Sebastian): Checks the provided username and password against the database
     def check_credentials(self, username, password):
         try:
-            conn = get_db_connection()
+            conn = get_db_connection()  # Establish a connection to the database
             cur = conn.cursor()
             cur.execute("SELECT password FROM users WHERE username = %s", (username,))
-            row = cur.fetchone()
+            row = cur.fetchone()  # Fetch the stored password for the given username
             cur.close()
             conn.close()
+
             if row and bcrypt.checkpw(password.encode('utf-8'), row[0].encode('utf-8')):
-                return True
+                return True  # Return True if the password matches
         except Exception as e:
             print("Database error:", e)
-            self.message_label.config(text="Database error", fg="red")
-        return False
+            self.message_label.config(text="Database error", fg="red")  # Display an error message
+        return False  # Return False if credentials are invalid or an error occurs
 
-    # ---------------------- SIGN-UP WINDOW FUNCTION ----------------------    
-    
-    def open_signup(self):  # This function handles opening the separate Sign Up window.
+    # ---------------------- SIGN-UP WINDOW FUNCTION ----------------------
+
+    # (Sebastian): Opens a new window for user sign-up
+    def open_signup(self):
         signup_window = tk.Toplevel(self.master)
         signup_window.title("Sign Up")
         signup_window.geometry("350x200")
@@ -111,17 +114,21 @@ class LoginScreen:
         frame = tk.Frame(signup_window, bg=LIGHT_GRAY_BG, padx=20, pady=20)
         frame.pack(expand=True)
 
+        # Username input field
         tk.Label(frame, text="New Username:", font=("Arial", 12), bg=LIGHT_GRAY_BG).grid(row=0, column=0, sticky="w", pady=5)
         new_username_entry = tk.Entry(frame, font=("Arial", 12))
         new_username_entry.grid(row=0, column=1, pady=5, padx=10)
 
+        # Password input field
         tk.Label(frame, text="New Password:", font=("Arial", 12), bg=LIGHT_GRAY_BG).grid(row=1, column=0, sticky="w", pady=5)
         new_password_entry = tk.Entry(frame, font=("Arial", 12), show="*")
         new_password_entry.grid(row=1, column=1, pady=5, padx=10)
 
+        # (Sebastian): Saves the new user credentials to the database
         def save_credentials():
             username = new_username_entry.get()
             password = new_password_entry.get()
+
             if not username or not password:
                 messagebox.showerror("Error", "Please enter both username and password.")
                 return
@@ -153,11 +160,13 @@ class LoginScreen:
                 print("Database error:", e)
                 messagebox.showerror("Error", "Database error")
 
+        # Sign-up button
         signup_button = tk.Button(frame, text="Sign Up", command=save_credentials, font=("Arial", 12), bg="white", fg="black", padx=10, pady=5)
         signup_button.grid(row=2, columnspan=2, pady=10)
 
-# ---------------------- OPEN SENTIMENT ANALYSIS APP ----------------------
+    # ---------------------- OPEN SENTIMENT ANALYSIS APP ----------------------
 
+    # (Sebastian): Opens the sentiment analysis app after a successful login
     def open_sentiment_analysis(self):
         self.master.destroy()
         root = tk.Tk()
