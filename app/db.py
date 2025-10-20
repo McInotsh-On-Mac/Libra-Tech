@@ -72,4 +72,17 @@ def initialize_tables():
     );
     """
     execute_query(tweets_table)
+
+    Tweets_table = """
+    CREATE TABLE IF NOT EXISTS Tweets (
+        tweet_id SERIAL PRIMARY KEY,
+        user_id SERIAL PRIMARY KEY,
+        content VARCHAR(255),
+        timestamp TIMESTAMP,
+        text text,
+        tweets__id text,
+        local_id SERIAL PRIMARY KEY,
+        score INT NOT NULL,
+        label VARCHAR(255),
+        """
     
