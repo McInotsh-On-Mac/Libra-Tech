@@ -6,7 +6,7 @@
 try:
     import tkinter as tk  # real tkinter used when running the GUI
 except Exception:
-    tk = None  # tests will monkeypatch sentiment_app.tk
+    tk = None  
 
 from tkinter import messagebox
 from .fetch_tweets import fetch_tweets_for_ui
@@ -27,7 +27,7 @@ CARET_COLOR = "#000000"
 class SentimentAnalysisApp:
     def __init__(self, master):
         self.master = master
-        # Window setup (safe if master is a simple object in tests)
+        # Window setup
         try:
             self.master.title("Libra Technology: Sentiment Analysis")
             self.master.geometry("800x600")
@@ -61,7 +61,7 @@ class SentimentAnalysisApp:
         self.keyword_entry = tk.Entry(keyword_frame, font=("Arial", 12), width=30)
         self.keyword_entry.pack(side=tk.LEFT, padx=5)
 
-        # Bind focus handlers where available
+        # Focus handlers where available
         try:
             self.keyword_entry.bind("<FocusIn>", self._on_entry_focus_in)
             self.keyword_entry.bind("<FocusOut>", self._on_entry_focus_out)
@@ -157,7 +157,7 @@ class SentimentAnalysisApp:
                 pass
             return
 
-        # Call fetch_tweets_for_ui (tests may monkeypatch this)
+        # Call fetch_tweets_for_ui
         try:
             result = fetch_tweets_for_ui(keyword, count=4)
         except Exception as e:

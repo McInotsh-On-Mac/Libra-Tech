@@ -12,11 +12,11 @@ def test_analyze_tweets_directly_uses_analyzer(monkeypatch):
     if not hasattr(mod, "analyze_tweets_directly"):
         pytest.skip("analyze_tweets_directly not found in app.analyze_sentiment")
 
-    # Provide a tiny fake analyzer that returns a recognizable result
+    # Tiny fake analyzer that returns a recognizable result
     def fake_analyzer(text):
         return {"label": "Positive", "score": 1.0, "matched_words": ["good"]}
 
-    # Monkeypatch the per-tweet analyzer used by the module (common name: analyze_sentiment)
+    # Per-tweet analyzer used by the module (analyze_sentiment)
     if hasattr(mod, "analyze_sentiment"):
         monkeypatch.setattr(mod, "analyze_sentiment", fake_analyzer)
     else:

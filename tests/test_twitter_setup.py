@@ -29,7 +29,7 @@ def test_create_twitter_client_returns_client(monkeypatch):
             return {"data": []}
 
     fake_tweepy = types.SimpleNamespace(Client=FakeClient)
-    # Patch likely references inside the module (covers "import tweepy" and "from tweepy import Client" cases)
+    # Patch likely references inside the module
     monkeypatch.setattr(ts, "tweepy", fake_tweepy, raising=False)
     monkeypatch.setattr(ts, "Client", FakeClient, raising=False)
 

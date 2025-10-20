@@ -77,7 +77,7 @@ def test_login_shows_warning_on_empty_credentials(monkeypatch):
         shown["title"] = t
         shown["msg"] = m
 
-    # monkeypatch messagebox used in the module (safe regardless of actual import style)
+    # Messagebox used in the module (safe regardless of actual import style)
     monkeypatch.setattr(login_mod, "messagebox", types.SimpleNamespace(showwarning=fake_warning))
 
     # find login handler on the instance (common names)
