@@ -6,6 +6,7 @@ from nltk import word_tokenize, pos_tag
 from nltk.corpus import wordnet
 from spellchecker import SpellChecker
 import os
+from datetime import datetime 
 from dotenv import load_dotenv
 from supabase import create_client
 
@@ -114,7 +115,6 @@ sentiment_dict = {
     "raw": 3, "elevated": 3, "cinematography": 3, "editing": 2, "score": 2
 }
 
-
 # Function to clean the tweet
 def clean_tweet(tweet):
     tweet = tweet.lower()
@@ -195,50 +195,6 @@ def analyze_sentiment(tokens):
     
     return sentiment, score, matched_words
 
-def fetch_tweets_from_db():
-    """
-    Fetches all tweets from the database using Supabase.
-    Returns a list of tuples: (tweet_id, tweet_content)
-    """
-    try:
-        print("[DB] Fetching tweets from Supabase...")
-        
-        # Based on your database structure, use the correct column names
-        response = supabase.table("tweets").select("tweet_id, content, text").execute()
-        
-        if hasattr(response, 'error') and response.error:
-            print(f"[DB] Error fetching tweets: {response.error}")
-            return []
-        
-        if isinstance(response, dict) and response.get("error"):
-            print(f"[DB] Dict error fetching tweets: {response['error']}")
-            return []
-        
-        if hasattr(response, 'data') and response.data:
-            print(f"[DB] Raw response data: {response.data}")
-            tweets = []
-            
-            for tweet in response.data:
-                tweet_id = tweet.get('tweet_id')
-                # Try content first, then text as fallback
-                content = tweet.get('content') or tweet.get('text', '')
-                
-                if content and content.strip():  # Only include tweets with actual content
-                    tweets.append((tweet_id, content.strip()))
-                    print(f"[DB] Added tweet {tweet_id}: {content[:50]}...")
-                else:
-                    print(f"[DB] Skipping tweet {tweet_id}: no content")
-            
-            print(f"[DB] Successfully fetched {len(tweets)} tweets with content")
-            return tweets
-        else:
-            print("[DB] No data in response")
-            return []
-        
-    except Exception as e:
-        print(f"[DB] Exception fetching tweets: {e}")
-        return []
-    
 def store_sentiment_in_db(tweet_id, label, score):
     """
     Stores sentiment analysis results in the database using Supabase.
@@ -275,172 +231,75 @@ def store_sentiment_in_db(tweet_id, label, score):
         print(f"[DB] Exception storing sentiment: {e}")
         return False
 
-def analyze_tweets_for_ui():
+def save_movie_sentiment_to_db(movie_name, overall_sentiment, sentiment_counts, sentiment_score):
     """
-    Comprehensive function that fetches tweets from DB, analyzes sentiment, 
-    stores results in DB, and returns formatted results for UI display.
+    Save movie sentiment analysis results to database.
+    Allows duplicate movie names to track sentiment history over time.
+    Args:
+        movie_name (str): Name of the movie
+        overall_sentiment (str): Overall sentiment label
+        sentiment_counts (dict): Counts of sentiments {'Positive': int, 'Negative': int, 'Neutral': int}
+        sentiment_score (float): Overall sentiment score
+    Returns:
+        bool: True if saved successfully, False otherwise
     """
     try:
-        # Fetch tweets from database
-        tweets = fetch_tweets_from_db()
+        from .db import get_db_connection  # Import the same connection function used by login
         
-        if not tweets:
-            return {
-                'success': False,
-                'message': 'No tweets found in database. Please fetch some tweets first.',
-                'total_tweets': 0,
-                'processed_tweets': 0,
-                'results': [],
-                'formatted_results': [],
-                'summary': 'No tweets available for analysis.',
-                'sentiment_counts': {'Positive': 0, 'Negative': 0, 'Neutral': 0, 'Error': 0}
-            }
+        # Calculate totals and percentages
+        total_tweets = sum(sentiment_counts.values())
+        if total_tweets == 0:
+            print("[DB] No tweets to save sentiment for")
+            return False
+            
+        positive_pct = (sentiment_counts.get("Positive", 0) / total_tweets) * 100
+        negative_pct = (sentiment_counts.get("Negative", 0) / total_tweets) * 100
+        neutral_pct = (sentiment_counts.get("Neutral", 0) / total_tweets) * 100
         
-        results = []
-        processed_count = 0
-        sentiment_counts = {'Positive': 0, 'Negative': 0, 'Neutral': 0, 'Error': 0}
-        formatted_results = []
-        
-        for tweet_id, tweet_content in tweets:
-            try:
-                # Clean and analyze the tweet
-                cleaned_tokens = clean_tweet(tweet_content)
-                cleaned_text = format_cleaned_text(cleaned_tokens)
-                sentiment_label, sentiment_score, matched_words = analyze_sentiment(cleaned_tokens)
-                
-                # Store sentiment in database
-                store_success = store_sentiment_in_db(tweet_id, sentiment_label, sentiment_score)
-                
-                # Prepare result for internal processing
-                result_dict = {
-                    'tweet_id': tweet_id,
-                    'raw_text': tweet_content,
-                    'cleaned_text': cleaned_text,
-                    'sentiment_label': sentiment_label,
-                    'sentiment_score': sentiment_score,
-                    'matched_words': matched_words,
-                    'stored_in_db': store_success
-                }
-                
-                results.append(result_dict)
-                processed_count += 1
-                
-                # Format for UI display
-                matched_words_str = ', '.join(matched_words) if matched_words else 'No sentiment words found'
-                
-                formatted_line = (
-                    f"Tweet ID: {tweet_id}\n"
-                    f"RAW: {tweet_content}\n"
-                    f"CLEANED: {cleaned_text}\n"
-                    f"SENTIMENT: {sentiment_label} (Score: {sentiment_score})\n"
-                    f"MATCHED WORDS: {matched_words_str}\n"
-                    f"{'-'*60}"
-                )
-                
-                formatted_results.append(formatted_line)
-                sentiment_counts[sentiment_label] += 1
-                
-            except Exception as e:
-                print(f"Error processing tweet {tweet_id}: {e}")
-                # Still add failed tweets to results for debugging
-                error_result = {
-                    'tweet_id': tweet_id,
-                    'raw_text': tweet_content,
-                    'cleaned_text': 'Error processing',
-                    'sentiment_label': 'Error',
-                    'sentiment_score': 0,
-                    'matched_words': [],
-                    'stored_in_db': False,
-                    'error': str(e)
-                }
-                results.append(error_result)
-                
-                # Format error for UI
-                formatted_line = (
-                    f"Tweet ID: {tweet_id}\n"
-                    f"RAW: {tweet_content}\n"
-                    f"ERROR: {str(e)}\n"
-                    f"{'-'*60}"
-                )
-                formatted_results.append(formatted_line)
-                sentiment_counts['Error'] += 1
-        
-        # Generate summary statistics
-        total_analyzed = sentiment_counts['Positive'] + sentiment_counts['Negative'] + sentiment_counts['Neutral']
-        
-        if total_analyzed > 0:
-            summary = (
-                f"\n{'='*60}\n"
-                f"SENTIMENT ANALYSIS SUMMARY\n"
-                f"{'='*60}\n"
-                f"Total Tweets Analyzed: {total_analyzed}\n"
-                f"Positive: {sentiment_counts['Positive']} ({(sentiment_counts['Positive']/total_analyzed*100):.1f}%)\n"
-                f"Negative: {sentiment_counts['Negative']} ({(sentiment_counts['Negative']/total_analyzed*100):.1f}%)\n"
-                f"Neutral: {sentiment_counts['Neutral']} ({(sentiment_counts['Neutral']/total_analyzed*100):.1f}%)\n"
-                f"Errors: {sentiment_counts['Error']}\n"
-                f"{'='*60}\n"
-            )
-        else:
-            summary = "\nNo tweets were successfully analyzed.\n"
-        
-        return {
-            'success': True,
-            'message': f'Successfully analyzed {processed_count} tweets',
-            'total_tweets': len(tweets),
-            'processed_tweets': processed_count,
-            'results': results,
-            'formatted_results': formatted_results,
-            'summary': summary,
-            'sentiment_counts': sentiment_counts
-        }
-        
-    except Exception as e:
-        print(f"Error in analyze_tweets_for_ui: {e}")
-        return {
-            'success': False,
-            'message': f'Error analyzing tweets: {str(e)}',
-            'total_tweets': 0,
-            'processed_tweets': 0,
-            'results': [],
-            'formatted_results': [],
-            'summary': 'Analysis failed due to an error.',
-            'sentiment_counts': {'Positive': 0, 'Negative': 0, 'Neutral': 0, 'Error': 0}
-        }
+        # Get current timestamp
+        analysis_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-def get_sentiment_summary():
-    """
-    Get a quick summary of stored sentiment analysis results from the database.
-    """
-    try:
-        print("[DB] Getting sentiment summary from Supabase...")
-        response = supabase.table("sentiments").select("label").execute()
+        # Connects to PostgreSQL database
+        conn = get_db_connection()
+        cur = conn.cursor()
         
-        if hasattr(response, 'error') and response.error:
-            print(f"[DB] Error getting sentiment summary: {response.error}")
-            return {}
+        # Insert the movie sentiment data using SQL (same pattern as login)
+        cur.execute("""
+            INSERT INTO movie_sentiment_history 
+            (movie_name, overall_sentiment, total_tweets_analyzed, 
+             positive_count, negative_count, neutral_count,
+             positive_percentage, negative_percentage, neutral_percentage,
+             sentiment_score, analyzed_at) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            movie_name.strip(),
+            overall_sentiment,
+            total_tweets,
+            sentiment_counts.get("Positive", 0),
+            sentiment_counts.get("Negative", 0),
+            sentiment_counts.get("Neutral", 0),
+            round(positive_pct, 1),
+            round(negative_pct, 1),
+            round(neutral_pct, 1),
+            round(sentiment_score, 3),
+            analysis_time
+        ))
         
-        if isinstance(response, dict) and response.get("error"):
-            print(f"[DB] Dict error getting sentiment summary: {response['error']}")
-            return {}
+        conn.commit()
+        cur.close()
+        conn.close()
         
-        if hasattr(response, 'data') and response.data:
-            # Count sentiments manually since Supabase doesn't support GROUP BY in basic queries
-            sentiment_counts = {}
-            for item in response.data:
-                label = item['label']
-                sentiment_counts[label] = sentiment_counts.get(label, 0) + 1
-            return sentiment_counts
-        else:
-            return {}
+        print(f"[DB] Successfully saved movie sentiment for '{movie_name}' to PostgreSQL at {analysis_time}")
+        return True
         
     except Exception as e:
-        print(f"[DB] Exception getting sentiment summary: {e}")
-        return {}
+        print(f"[DB] Error saving movie sentiment: {e}")
+        return False
 
 def analyze_tweets_directly(tweets_list, keyword=""):
     """
-    Analyze sentiment of tweets directly from a list (not from database)
-    Returns: dict with success status, results, and summary
+    Analyze sentiment of tweets directly from a list of tweet texts.
+    Automatically saves movie sentiment to database using PostgreSQL
     """
     print(f"[DIRECT] Starting direct analysis of {len(tweets_list)} tweets for keyword: {keyword}")
     
@@ -503,33 +362,41 @@ def analyze_tweets_directly(tweets_list, keyword=""):
             neg_pct = (counts['Negative'] / total_analyzed) * 100
             neu_pct = (counts['Neutral'] / total_analyzed) * 100
             
-            summary_lines = [
-                f"🎬 SENTIMENT ANALYSIS SUMMARY for '{keyword}'",
-                f"📊 Analyzed {total_analyzed} tweets",
-                f"😊 Positive: {counts['Positive']} ({pos_pct:.1f}%)",
-                f"😐 Neutral: {counts['Neutral']} ({neu_pct:.1f}%)", 
-                f"😞 Negative: {counts['Negative']} ({neg_pct:.1f}%)",
-                ""
-            ]
+            # Calculate overall sentiment score
+            pos_weight = counts['Positive']
+            neg_weight = counts['Negative']
+            total_weight = max(1, pos_weight + neg_weight)
+            overall_score = (pos_weight - neg_weight) / total_weight
             
             # Determine overall sentiment
-            if counts['Positive'] > counts['Negative'] and counts['Positive'] > counts['Neutral']:
-                overall = "POSITIVE 😊"
-                summary_lines.append(f"🎯 Overall sentiment about '{keyword}': {overall}")
-                summary_lines.append(f"✨ People seem to like this movie!")
+            if counts['Positive'] > counts['Negative'] and counts['Positive'] >= counts['Neutral']:
+                overall_sentiment = "Positive"
             elif counts['Negative'] > counts['Positive'] and counts['Negative'] > counts['Neutral']:
-                overall = "NEGATIVE 😞"
-                summary_lines.append(f"🎯 Overall sentiment about '{keyword}': {overall}")
-                summary_lines.append(f"💭 People seem critical of this movie.")
+                overall_sentiment = "Negative"
             else:
-                overall = "NEUTRAL 😐"
-                summary_lines.append(f"🎯 Overall sentiment about '{keyword}': {overall}")
-                summary_lines.append(f"🤔 Mixed or neutral opinions about this movie.")
+                overall_sentiment = "Neutral"
             
-            result['summary'] = "\n".join(summary_lines)
+            # Save movie sentiment to database using PostgreSQL (like login system)
+            if keyword and keyword.strip():
+                try:
+                    save_success = save_movie_sentiment_to_db(
+                        movie_name=keyword,
+                        overall_sentiment=overall_sentiment,
+                        sentiment_counts=counts,
+                        sentiment_score=overall_score
+                    )
+                    if save_success:
+                        print(f"[DB] Movie sentiment saved successfully for '{keyword}'")
+                    else:
+                        print(f"[DB] Failed to save movie sentiment for '{keyword}'")
+                except Exception as e:
+                    print(f"[DB] Error saving movie sentiment: {e}")
+            
             result['detailed_results'] = analyzed_results
             result['success'] = True
             result['message'] = f"Successfully analyzed {total_analyzed} tweets"
+            result['overall_sentiment'] = overall_sentiment
+            result['sentiment_score'] = overall_score
             
         else:
             result['message'] = "No valid tweets could be analyzed after cleaning"
@@ -542,53 +409,3 @@ def analyze_tweets_directly(tweets_list, keyword=""):
     
     print(f"[DIRECT] Analysis complete. Success: {result['success']}")
     return result
-
-def analyze_tweet_sentiment(cleaned_tokens):
-    """
-    Helper function to analyze sentiment from cleaned tokens
-    Returns: dict with label, score, and matched_words
-    """
-    sentiment_label, sentiment_score, matched_words = analyze_sentiment(cleaned_tokens)
-    
-    return {
-        'label': sentiment_label,
-        'score': sentiment_score,
-        'matched_words': matched_words
-    }
-
-# For testing purposes - can be run directly
-if __name__ == "__main__":
-    print("Testing sentiment analysis functions...")
-    
-    # Test multiple tweets
-    test_tweets = [
-        "I love this amazing movie! It's absolutely fantastic and brilliant!",
-        "This movie is terrible and boring. Complete waste of time.",
-        "The film was okay, nothing special but watchable.",
-        "Incredible masterpiece! Outstanding and breathtaking!",
-        "Disappointing and overrated. Poor acting."
-    ]
-    
-    print("🧪 Testing Individual Sentiment Analysis:")
-    print("=" * 60)
-    
-    for i, tweet in enumerate(test_tweets, 1):
-        tokens = clean_tweet(tweet)
-        sentiment, score, matched = analyze_sentiment(tokens)
-        
-        print(f"\nTest {i}:")
-        print(f"Tweet: {tweet}")
-        print(f"Sentiment: {sentiment}, Score: {score}")
-        print(f"Matched Words: {matched}")
-    
-    # Test database functions
-    print(f"\n{'='*60}")
-    print("🗄️ Testing database analysis...")
-    result = analyze_tweets_for_ui()
-    if result['success']:
-        print(f"✅ Analysis successful: {result['message']}")
-        if 'summary' in result:
-            print(result['summary'])
-    else:
-        print(f"❌ Analysis failed: {result['message']}")
-        print("💡 This is expected if you have no tweets in the database.")

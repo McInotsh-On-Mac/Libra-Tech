@@ -12,7 +12,7 @@ from .twitter_setup import client
 from supabase import create_client
 from langdetect import detect, LangDetectException
 
-# Initialize Supabase client (fail fast if missing)
+# Initialize Supabase client
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
 if not supabase_url or not supabase_key:
@@ -29,38 +29,6 @@ def is_english(tweet_text):
     try:
         return detect(tweet_text) == 'en'
     except LangDetectException:
-        return False
-
-def safe_store_tweet_in_db(text, sequential_id, user_id=None, timestamp=None):
-    try:
-        # Build data object for Supabase insertion
-        data = {
-            "content": text,
-            "tweet_id": sequential_id  # <- Fixed: use "tweet_id" to match Supabase schema
-        }
-        
-        if user_id is not None:
-            data["user_id"] = str(user_id)
-        if timestamp is not None:
-            data["timestamp"] = str(timestamp)
-
-        print(f"[DB] inserting tweet_id={sequential_id} ...")
-        res = supabase.table("tweets").insert(data).execute()
-        
-        # Check for errors in Supabase response
-        if hasattr(res, 'error') and res.error:
-            print(f"[DB] Supabase error: {res.error}")
-            return False
-        
-        if isinstance(res, dict) and res.get("error"):
-            print(f"[DB] Dict error: {res['error']}")
-            return False
-            
-        print(f"[DB] Successfully inserted tweet_id={sequential_id}")
-        return True
-        
-    except Exception as e:
-        print(f"[DB] Exception while inserting: {e}")
         return False
 
 def fetch_tweets_for_ui(keyword, count=10, max_api_pages=1, api_wait_seconds=1):
@@ -83,14 +51,14 @@ def fetch_tweets_for_ui(keyword, count=10, max_api_pages=1, api_wait_seconds=1):
     seen = set()
     next_token = None
     pages = 0
-    sequential_counter = 1  # Initialize sequential counter
+    sequential_counter = 1
 
     try:
         while len(collected) < count and pages < max_api_pages:
             pages += 1
             print(f"[FETCH] API request page {pages} next_token={next_token}")
             try:
-                # request - include tweet_fields to get ids and author
+                # create request
                 resp = client.search_recent_tweets(
                     query=keyword,
                     max_results=min(100, max(10, count)),
@@ -119,18 +87,9 @@ def fetch_tweets_for_ui(keyword, count=10, max_api_pages=1, api_wait_seconds=1):
                     continue
                 seen.add(one_line)
 
-                # attempt DB store but do not fail the whole run if DB fails
-                try:
-                    stored = safe_store_tweet_in_db(one_line, sequential_counter,
-                                                    user_id=getattr(t, "author_id", None),
-                                                    timestamp=getattr(t, "created_at", None))
-                    if not stored:
-                        print("[FETCH] DB store returned False (continuing)")
-                except Exception as db_e:
-                    print("[FETCH] DB exception (ignored):", db_e)
-
                 collected.append(one_line)
-                sequential_counter += 1  # Increment counter for next tweet
+                # Increment counter for next tweet
+                sequential_counter += 1
                 print(f"[FETCH] collected {len(collected)}/{count}")
                 if len(collected) >= count:
                     break
@@ -159,7 +118,3 @@ def fetch_tweets_for_ui(keyword, count=10, max_api_pages=1, api_wait_seconds=1):
 
     print("[FETCH] finished:", result.get('message'))
     return result
-
-if __name__ == "__main__":
-    # quick debug run
-    print(fetch_tweets_for_ui("test", count=5, max_api_pages=1))
