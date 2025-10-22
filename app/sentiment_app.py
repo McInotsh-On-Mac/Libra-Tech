@@ -23,7 +23,7 @@ CARET_COLOR      = "#000000"
 
 
 class SentimentAnalysisApp:
-    # TODO(Ayinde): (Fetch Tweets Page UI Redesign): Improve UI/UX for tweet/sentiment page.
+    # (Ayinde): (Fetch Tweets Page UI Redesign): Improve UI/UX for tweet/sentiment page.
     def __init__(self, master):
         # window setup
         self.master = master
@@ -171,6 +171,8 @@ class SentimentAnalysisApp:
             self.output_text.see(tk.END)
         print(output)
 
+    # (Benjamin) Fetch tweets function
+    # (Ayinde) Design output formatting for fetched tweets and analysis results
     def open_fetch_tweets(self):
         """
         Fetch tweets based on the keyword entered by the user using fetch_tweets_for_ui.
@@ -219,9 +221,10 @@ class SentimentAnalysisApp:
         finally:
             self.search_button.config(state=tk.NORMAL)
 
+    # (Jania) Sentiment analysis function
     def open_sentiment_analysis(self):
         """
-        Analyze the currently fetched tweets using analyze_tweets_directly.
+        Analyze the currently fetched tweets using analyze_tweets.
         """
         if not self.current_tweets:
             messagebox.showwarning("No Tweets", "Please fetch tweets first before analyzing sentiment.")
@@ -232,11 +235,11 @@ class SentimentAnalysisApp:
             self.analysis_button.config(state=tk.DISABLED, bg="#BDBDBD")
             self.append_output(f"🎬 Analyzing sentiment for {len(self.current_tweets)} tweets about '{self.current_keyword}'...", "muted")
 
-            # import analyze_tweets_directly
-            from .analyze_sentiment import analyze_tweets_directly
+            # import analyze_tweets
+            from .analyze_sentiment import analyze_tweets
 
             # call analysis
-            analysis_result = analyze_tweets_directly(self.current_tweets, self.current_keyword)
+            analysis_result = analyze_tweets(self.current_tweets, self.current_keyword)
 
             if analysis_result.get("success"):
                 self.output_text.insert(tk.END, "—" * 60 + "\n", "muted")

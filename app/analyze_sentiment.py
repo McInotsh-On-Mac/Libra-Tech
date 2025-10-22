@@ -8,17 +8,9 @@ from spellchecker import SpellChecker
 import os
 from datetime import datetime 
 from dotenv import load_dotenv
-from supabase import create_client
 
 # Load environment variables
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
-
-# Initialize Supabase client (same format as fetch_tweets.py)
-supabase_url = os.getenv("SUPABASE_URL")
-supabase_key = os.getenv("SUPABASE_KEY")
-if not supabase_url or not supabase_key:
-    print("Missing SUPABASE_URL or SUPABASE_KEY in .env")
-supabase = create_client(supabase_url, supabase_key)
 
 # Initialize tools and vocab
 stop_words = set(stopwords.words('english'))
@@ -195,42 +187,7 @@ def analyze_sentiment(tokens):
     
     return sentiment, score, matched_words
 
-def store_sentiment_in_db(tweet_id, label, score):
-    """
-    Stores sentiment analysis results in the database using Supabase.
-    
-    Args:
-        tweet_id (int): The ID of the tweet (should match tweets.tweet_id)
-        label (str): Sentiment label ('Positive', 'Negative', 'Neutral')
-        score (int): Sentiment score
-    """
-    try:
-        data = {
-            "tweet_id": int(tweet_id),  # Convert to int to match your database schema
-            "label": label,
-            "score": score
-        }
-        
-        print(f"[DB] Storing sentiment for tweet {tweet_id}: {label} ({score})")
-        
-        # Use upsert to handle duplicates (in case we analyze the same tweet twice)
-        response = supabase.table("sentiments").upsert(data, on_conflict="tweet_id").execute()
-        
-        if hasattr(response, 'error') and response.error:
-            print(f"[DB] Error storing sentiment: {response.error}")
-            return False
-        
-        if isinstance(response, dict) and response.get("error"):
-            print(f"[DB] Dict error storing sentiment: {response['error']}")
-            return False
-        
-        print(f"[DB] Successfully stored sentiment for tweet {tweet_id}")
-        return True
-        
-    except Exception as e:
-        print(f"[DB] Exception storing sentiment: {e}")
-        return False
-
+# (Jania) Save movie sentiment to database function
 def save_movie_sentiment_to_db(movie_name, overall_sentiment, sentiment_counts, sentiment_score):
     """
     Save movie sentiment analysis results to database.
@@ -296,12 +253,13 @@ def save_movie_sentiment_to_db(movie_name, overall_sentiment, sentiment_counts, 
         print(f"[DB] Error saving movie sentiment: {e}")
         return False
 
-def analyze_tweets_directly(tweets_list, keyword=""):
+# (Benjamin) Analyze tweets function
+def analyze_tweets(tweets_list, keyword=""):
     """
     Analyze sentiment of tweets directly from a list of tweet texts.
     Automatically saves movie sentiment to database using PostgreSQL
     """
-    print(f"[DIRECT] Starting direct analysis of {len(tweets_list)} tweets for keyword: {keyword}")
+    print(f"Starting analysis of {len(tweets_list)} tweets for keyword: {keyword}")
     
     result = {
         'success': False,
@@ -320,7 +278,7 @@ def analyze_tweets_directly(tweets_list, keyword=""):
         analyzed_results = []
         
         for i, tweet_text in enumerate(tweets_list, 1):
-            print(f"[DIRECT] Analyzing tweet {i}/{len(tweets_list)}")
+            print(f"Analyzing tweet {i}/{len(tweets_list)}")
             
             # Clean the tweet (returns list of tokens)
             cleaned_tokens = clean_tweet(tweet_text)
@@ -330,7 +288,7 @@ def analyze_tweets_directly(tweets_list, keyword=""):
             
             # Check if we have any tokens after cleaning
             if not cleaned_tokens or len(cleaned_tokens) == 0:
-                print(f"[DIRECT] Skipping empty tweet {i} after cleaning")
+                print(f"Skipping empty tweet {i} after cleaning")
                 continue
             
             # Analyze sentiment using the tokens
@@ -350,7 +308,7 @@ def analyze_tweets_directly(tweets_list, keyword=""):
             if sentiment_label in result['sentiment_counts']:
                 result['sentiment_counts'][sentiment_label] += 1
             
-            print(f"[DIRECT] Tweet {i}: {sentiment_label} (score: {sentiment_score})")
+            print(f"Tweet {i}: {sentiment_label} (score: {sentiment_score})")
         
         # Create summary
         total_analyzed = len(analyzed_results)
@@ -376,7 +334,7 @@ def analyze_tweets_directly(tweets_list, keyword=""):
             else:
                 overall_sentiment = "Neutral"
             
-            # Save movie sentiment to database using PostgreSQL (like login system)
+            # Save movie sentiment to database using PostgreSQL
             if keyword and keyword.strip():
                 try:
                     save_success = save_movie_sentiment_to_db(
@@ -386,12 +344,12 @@ def analyze_tweets_directly(tweets_list, keyword=""):
                         sentiment_score=overall_score
                     )
                     if save_success:
-                        print(f"[DB] Movie sentiment saved successfully for '{keyword}'")
+                        print(f"Movie sentiment saved successfully for '{keyword}'")
                     else:
-                        print(f"[DB] Failed to save movie sentiment for '{keyword}'")
+                        print(f"Failed to save movie sentiment for '{keyword}'")
                 except Exception as e:
-                    print(f"[DB] Error saving movie sentiment: {e}")
-            
+                    print(f"Error saving movie sentiment: {e}")
+
             result['detailed_results'] = analyzed_results
             result['success'] = True
             result['message'] = f"Successfully analyzed {total_analyzed} tweets"

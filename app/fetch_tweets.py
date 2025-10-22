@@ -9,16 +9,7 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 from .twitter_setup import client
-from supabase import create_client
 from langdetect import detect, LangDetectException
-
-# Initialize Supabase client
-supabase_url = os.getenv("SUPABASE_URL")
-supabase_key = os.getenv("SUPABASE_KEY")
-if not supabase_url or not supabase_key:
-    print("Missing SUPABASE_URL or SUPABASE_KEY in .env")
-    exit(1)
-supabase = create_client(supabase_url, supabase_key)
 
 print("fetch_tweets.py started")
 
@@ -30,13 +21,16 @@ def is_english(tweet_text):
         return detect(tweet_text) == 'en'
     except LangDetectException:
         return False
-
+    
+# (Benjamin): Fetch function for UI integration
 def fetch_tweets_for_ui(keyword, count=10, max_api_pages=1, api_wait_seconds=1):
     """
-    Bounded fetch with debug prints. Returns dict {'success','tweets','message','count'}.
-    max_api_pages controls pagination; default 1 prevents long loops.
+    Fetch tweets function with debug prints. Returns dict {'success','tweets','message','count'}.
+
+    max_api_pages controls how many batches of tweets to request from Twitter; 
+    default 1 prevents fetching too many tweets and hitting rate limits.
     """
-    print(f"[FETCH] start for keyword='{keyword}' count={count}")
+    print(f"FETCH start for keyword='{keyword}' count={count}")
     result = {'success': False, 'tweets': [], 'message': '', 'count': 0}
     if not keyword or not keyword.strip():
         result['message'] = "No keyword provided."
@@ -56,7 +50,7 @@ def fetch_tweets_for_ui(keyword, count=10, max_api_pages=1, api_wait_seconds=1):
     try:
         while len(collected) < count and pages < max_api_pages:
             pages += 1
-            print(f"[FETCH] API request page {pages} next_token={next_token}")
+            print(f"API request page {pages} next_token={next_token}")
             try:
                 # create request
                 resp = client.search_recent_tweets(
@@ -66,13 +60,13 @@ def fetch_tweets_for_ui(keyword, count=10, max_api_pages=1, api_wait_seconds=1):
                     next_token=next_token
                 )
             except Exception as api_e:
-                print("[FETCH] API call exception:", api_e)
+                print("API call exception:", api_e)
                 result['message'] = f"API error: {api_e}"
                 return result
 
-            print("[FETCH] API call returned, checking data...")
+            print("API call returned, checking data...")
             if not resp or not getattr(resp, "data", None):
-                print("[FETCH] no data in response")
+                print("no data in response")
                 break
 
             for t in resp.data:
@@ -101,10 +95,10 @@ def fetch_tweets_for_ui(keyword, count=10, max_api_pages=1, api_wait_seconds=1):
                 next_token = meta.get("next_token")
 
             if next_token:
-                print(f"[FETCH] next_token present, waiting {api_wait_seconds}s before next page")
+                print(f"next_token present, waiting {api_wait_seconds}s before next page")
                 time.sleep(api_wait_seconds)
             else:
-                print("[FETCH] no next_token, finishing")
+                print("no next_token, finishing")
                 break
 
         if collected:
@@ -116,5 +110,5 @@ def fetch_tweets_for_ui(keyword, count=10, max_api_pages=1, api_wait_seconds=1):
         print("[FETCH] unexpected exception:", e)
         result['message'] = f"Unexpected error: {e}"
 
-    print("[FETCH] finished:", result.get('message'))
+    print("FETCH finished:", result.get('message'))
     return result
