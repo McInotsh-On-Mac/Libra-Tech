@@ -9,7 +9,7 @@ except Exception:
     tk = None  
 
 from tkinter import messagebox
-from .fetch_tweets import fetch_tweets_for_ui
+from app.fetch_tweets import fetch_tweets_for_ui
 
 BRAND_DARK_BLUE = "#1A237E"
 LIGHT_GRAY_BG = "#F0F0F0"
