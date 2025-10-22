@@ -11,18 +11,6 @@ except Exception:
 from tkinter import messagebox
 from app.fetch_tweets import fetch_tweets_for_ui
 
-BRAND_DARK_BLUE = "#1A237E"
-LIGHT_GRAY_BG = "#F0F0F0"
-BTN_BG = "#304FFE"
-BTN_BG_ACTIVE = "#1E40FF"
-BTN_FG = "#000000"
-ENTRY_BG = "#FFFFFF"
-ENTRY_FG = "#000000"
-ENTRY_PLACEHOLDER = "#8A8A8A"
-SELECTION_BG = "#CCE0FF"
-SELECTION_FG = "#000000"
-CARET_COLOR = "#000000"
-
 
 class SentimentAnalysisApp:
     def __init__(self, master):
