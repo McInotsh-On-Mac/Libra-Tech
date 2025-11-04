@@ -1,9 +1,14 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
+from tkinter.ttk import Notebook
 import datetime  # for timestamps
 import requests  # for api calls
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
 
-from .fetch_tweets import fetch_tweets_for_ui
+from .sample_tweets import generate_sample_tweets  # Use sample tweets instead
+from .chart_sentiment import create_sentiment_charts
 
 # brand + accessibility colors
 BRAND_DARK_BLUE = "#1A237E"   # original brand blue (still used for title)
@@ -28,15 +33,34 @@ class SentimentAnalysisApp:
         # window setup
         self.master = master
         self.master.title("Libra Technology: Sentiment Analysis")
-        self.master.geometry("800x600")
+        self.master.geometry("1200x800")  # Wider window to accommodate header
         self.master.configure(bg=LIGHT_GRAY_BG)
 
         # store fetched tweets + keyword
         self.current_tweets = []
         self.current_keyword = ""
+        
+        # Create notebook for tabs
+        self.notebook = ttk.Notebook(master)
+        self.notebook.pack(expand=True, fill=tk.BOTH, padx=20, pady=10)  # Increased padding
+        
+        # Create main analysis tab
+        self.analysis_tab = ttk.Frame(self.notebook)
+        self.notebook.add(self.analysis_tab, text="Analysis")
+        
+        # Create charts tab
+        self.charts_tab = ttk.Frame(self.notebook)
+        self.notebook.add(self.charts_tab, text="Charts")
+        
+        # Initialize main analysis tab
+        self.init_analysis_tab()
+        
+        # Initialize charts tab
+        self.init_charts_tab()
 
+    def init_analysis_tab(self):
         # main frame
-        self.frame = tk.Frame(master, bg=LIGHT_GRAY_BG, padx=20, pady=20)
+        self.frame = tk.Frame(self.analysis_tab, bg=LIGHT_GRAY_BG, padx=30, pady=20)  # Increased horizontal padding
         self.frame.pack(expand=True, fill=tk.BOTH)
 
         # title
@@ -152,6 +176,22 @@ class SentimentAnalysisApp:
         if not self.keyword_entry.get().strip():
             self._set_entry_placeholder()
 
+    def init_charts_tab(self):
+        # Create frame for charts
+        self.charts_frame = tk.Frame(self.charts_tab, bg=LIGHT_GRAY_BG)
+        self.charts_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+        
+        # Create notebook for different time windows
+        self.charts_notebook = ttk.Notebook(self.charts_frame)
+        self.charts_notebook.pack(expand=True, fill=tk.BOTH)
+        
+        # Create frames for each time window
+        self.chart_frames = {}
+        for window in ['24h', '30d', '60d']:
+            frame = ttk.Frame(self.charts_notebook)
+            self.charts_notebook.add(frame, text=f'Last {window}')
+            self.chart_frames[window] = frame
+
     def append_output(self, output, tag=None):
         """
         Add timestamped output to the UI text box.
@@ -173,6 +213,28 @@ class SentimentAnalysisApp:
 
     # (Benjamin) Fetch tweets function
     # (Ayinde) Design output formatting for fetched tweets and analysis results
+    def update_charts(self):
+        """Update all sentiment charts with new data"""
+        try:
+            # Clear existing charts
+            for frame in self.chart_frames.values():
+                for widget in frame.winfo_children():
+                    widget.destroy()
+            
+            # Create new charts
+            charts = create_sentiment_charts()
+            
+            # Add charts to their respective frames
+            for window, chart in charts.items():
+                canvas = FigureCanvasTkAgg(chart, master=self.chart_frames[window])
+                canvas.draw()
+                canvas.get_tk_widget().pack(expand=True, fill=tk.BOTH)
+                
+            self.notebook.select(self.charts_tab)  # Switch to charts tab
+            
+        except Exception as e:
+            messagebox.showerror("Chart Error", f"Failed to update charts: {e}")
+
     def open_fetch_tweets(self):
         """
         Fetch tweets based on the keyword entered by the user using fetch_tweets_for_ui.
@@ -189,7 +251,7 @@ class SentimentAnalysisApp:
         self.append_output(f"🔍 Fetching tweets for: {kw} ...", "muted")
 
         try:
-            result = fetch_tweets_for_ui(kw, count=6)
+            result = generate_sample_tweets(kw, count=6)  # Use sample tweets instead
 
             if result.get("success"):
                 self.current_tweets = result.get("tweets", [])
@@ -212,6 +274,9 @@ class SentimentAnalysisApp:
 
                 # enable analyze button
                 self.analysis_button.config(state=tk.NORMAL, bg=BTN_BG)
+                
+                # Update charts with new data
+                self.update_charts()
             else:
                 self.append_output(f"{result.get('message', 'Failed to fetch tweets')}", "neg")
                 self.current_tweets = []
@@ -310,6 +375,9 @@ class SentimentAnalysisApp:
 
                 # end separator
                 self.output_text.insert(tk.END, "—" * 60 + "\n", "muted")
+                
+                # Update charts after analysis
+                self.update_charts()
             else:
                 self.append_output(f"Analysis failed: {analysis_result.get('message', 'Unknown error')}", "neg")
         except ImportError as ie:
