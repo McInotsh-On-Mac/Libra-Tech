@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=LibraTech Sentiment Analysis
+Comment=Sentiment Analysis on X (Twitter)
+Exec=/Users/jania/Libra-Tech/launcher.sh
+Icon=/Users/jania/Libra-Tech/assets/icons/icon.png
+Terminal=true
+Categories=Application;
