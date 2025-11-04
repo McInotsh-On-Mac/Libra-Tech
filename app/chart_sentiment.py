@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import random
 
+# Anthony Powell
 def generate_sample_data(days=60):
     """Generate sample tweet sentiment data over time."""
     current_time = datetime.now()
@@ -79,6 +80,7 @@ def plot_sentiment_analysis(data, time_window):
     
     return plt.gcf()
 
+# Elali McNair
 def create_sentiment_charts(time_windows=['24h', '30d', '60d']):
     """Create sentiment charts for all specified time windows."""
     # Generate sample data for 60 days (covers all windows)
