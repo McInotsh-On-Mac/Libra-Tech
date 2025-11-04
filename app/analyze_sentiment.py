@@ -19,22 +19,114 @@ english_vocab = set(w.lower() for w in words.words())
 spell = SpellChecker()
 
 # Slang whitelist and shorthand map
-slang_whitelist = {"u", "dm", "rn", "pls", "idk", "lol", "brb", "gtg", "lmao", "omg", "tbh", "afaik", "imho"}
+slang_whitelist = {
+    # Base list
+    "u", "dm", "rn", "pls", "idk", "lol", "brb", "gtg", "lmao", "omg", "tbh",
+    "afaik", "imho", "atp", "wya", "fr", "afk", "smh", "fomo", "yolo", "iykyk",
+
+    # Extended list
+    "143", "2day", "4eae", "adn", "ama", "amho", "b2b", "b2c", "b4n", "bfn",
+    "f2f", "ftf", "f2p", "fubar", "fwb", "fyeo", "fyi", "fwiw", "glhf", "gm",
+    "gn", "grwm", "hak", "hand", "hth", "idc", "im", "imo", "iirc", "irl",
+    "iu2u", "iykwim", "jic", "jomo", "kfy", "kpc", "lmbo", "lmirl", "lsr",
+    "myob", "nifoc", "nmu", "oic", "ootd", "op", "ot", "p2p", "qotd", "rotfl",
+    "rt", "sm", "some", "tbd", "tbt", "tl;dr", "tt", "ttys", "ugt", "ugc",
+    "wcw", "wtp", "ymmv", "csm", "diftp", "fyeo", "ftf", "g2g", "lmirl"
+}
+
 shorthand_map = {
+    # Core list
     "u": "you",
     "dm": "direct message",
     "rn": "right now",
     "pls": "please",
     "idk": "i don't know",
     "lol": "laugh out loud",
-    "gtg": "got to go",
     "brb": "be right back",
+    "gtg": "got to go",
     "lmao": "laughing my ass off",
     "omg": "oh my god",
     "tbh": "to be honest",
     "afaik": "as far as i know",
-    "imho": "in my humble opinion"
+    "imho": "in my humble opinion",
+    "atp": "at this point",
+    "wya": "where you at",
+    "fr": "for real",
+    "afk": "away from keyboard",
+    "smh": "shaking my head",
+    "fomo": "fear of missing out",
+    "yolo": "you only live once",
+    "iykyk": "if you know you know",
+
+    # Extended mappings
+    "143": "i love you",
+    "2day": "today",
+    "4eae": "forever and ever",
+    "adn": "any day now",
+    "ama": "ask me anything",
+    "amho": "in my humble opinion",
+    "b2b": "business to business",
+    "b2c": "business to consumer",
+    "b4n": "bye for now",
+    "bfn": "bye for now",
+    "f2f": "face to face",
+    "ftf": "face to face",
+    "f2p": "free to play",
+    "fubar": "fouled up beyond all recognition",
+    "fwb": "friends with benefits",
+    "fyeo": "for your eyes only",
+    "fyi": "for your information",
+    "fwiw": "for what it's worth",
+    "glhf": "good luck have fun",
+    "gm": "good morning",
+    "gn": "good night",
+    "grwm": "get ready with me",
+    "hak": "hugs and kisses",
+    "hand": "have a nice day",
+    "hth": "hope this helps",
+    "idc": "i don't care",
+    "im": "instant message",
+    "imo": "in my opinion",
+    "iirc": "if i recall correctly",
+    "irl": "in real life",
+    "iu2u": "it's up to you",
+    "iykwim": "if you know what i mean",
+    "jic": "just in case",
+    "jomo": "joy of missing out",
+    "kfy": "kiss for you",
+    "kpc": "keep parents clueless",
+    "lmbo": "laughing my butt off",
+    "lmirl": "let's meet in real life",
+    "lsr": "loser",
+    "myob": "mind your own business",
+    "nifoc": "naked in front of computer",
+    "nmu": "not much, you?",
+    "oic": "oh, i see",
+    "ootd": "outfit of the day",
+    "op": "original poster",
+    "ot": "off topic",
+    "p2p": "peer to peer",
+    "qotd": "quote of the day",
+    "rotfl": "rolling on the floor laughing",
+    "rt": "retweet",
+    "sm": "social media",
+    "some": "shout out my ex",
+    "tbd": "to be determined",
+    "tbt": "throwback thursday",
+    "tl;dr": "too long; didn't read",
+    "tt": "talk to",
+    "ttys": "talk to you soon",
+    "ugt": "you got this",
+    "ugc": "user-generated content",
+    "wcw": "woman crush wednesday",
+    "wtp": "what’s the plan",
+    "ymmv": "your mileage may vary",
+    "csm": "commenting for better reach",
+    "diftp": "do it for the plot",
+    "g2g": "got to go"
 }
+
+
 
 #sentiment dictionary
 sentiment_dict = {
@@ -43,6 +135,8 @@ sentiment_dict = {
    "breathtaking": 5, "phenomenal": 5, "spectacular": 5, "stunning": 5, "incredible": 5, "legendary": 5, 
    "groundbreaking": 5, "emotionally-powerful": 5, "iconic": 5, "revolutionary": 5, "perfection": 5, 
    "unforgettable": 5, "flawless": 5, "timeless": 5, "brilliantly-crafted": 5, "peak-cinema": 5, "love": 5,
+   "masterful": 5, "transformative": 5, "triumphant": 5, "breathtakingly-beautiful": 5,
+
     "epic": 4, "amazing": 4, "awesome": 4, "brilliant": 4, "fantastic": 4,
     "excellent": 4, "outstanding": 4, "thrilling": 4, "wonderful": 4, "mind-blowing": 4,
     "gripping": 4, "electrifying": 4, "remarkable": 4, "heartwarming": 4, "thought-provoking": 4,
@@ -52,42 +146,48 @@ sentiment_dict = {
     "visually-stunning": 4, "tight-script": 4, "brilliant-performance": 4, "moving": 4, "elegant": 4,
     "well-paced": 4, "immersive": 4, "emotional-journey": 4, "genius": 4,
     "beautiful": 4, "excited": 4, "joy": 4, "funny": 4, "satisfying": 4, "enthusiastic": 4,
-    "great": 3, "impressive": 3, "superb": 3, "entertaining": 3, "exciting": 3,
-    "intense": 3, "high-octane": 3, "cinematic": 3, "riveting": 3, "charming": 3,
-    "engaging": 3, "cult-classic": 3, "fun": 3, "cool": 3, "strong": 3,
-    "well-done": 3, "solid": 3, "visually-pleasing": 3, "watchable": 3, "stylish": 3,
-    "well-written": 3, "clever": 3, "artistic": 3, "emotion-filled": 3, "smart": 3,
-    "balanced": 3, "great-dialogue": 3, "unique": 3, "worthy": 3, "likeable": 3,
-    "fun-ride": 3, "touching": 3, "laugh-out-loud": 3, "witty": 3, "feel-good": 3,
+    "delightful": 4, "optimistic": 4, "fulfilling": 4, "wholesome": 4, "soulful": 4,
+    "poetic": 4, "dreamlike": 4, "satisfying-ending": 4, "heart-touching": 4,
+    "strong-narrative": 4,
 
     # Neutral Words
     "okay": 0, "neutral": 0, "average": 0, "decent": 1, "plain": 1,
     "standard": 1, "typical": 0, "moderate": 1, "simple": 1, "fine": 1,
     "passable": 1, "straightforward": 1, "uncomplicated": 1, "serviceable": 1, "middle-of-the-road": 0,
     "meh": 0, "acceptable": 1, "normal": 1, "basic": 1, "regular": 1,
-    "expected": 1, "predictable": -1, "forgettable": -1, "formulaic": -1, "plain-jane": 0, "scary": -1, "surprised": 1,
+    "expected": 1, "predictable": -1, "forgettable": -1, "formulaic": -1, "plain-jane": 0,
+    "scary": -1, "surprised": 1, "reflective": 1, "subdued": 0, "mellow": 1,
+    "understated": 1, "grounded": 1, "minimalistic": 1, "realistic": 1, "moody": 0,
+    "introspective": 1, "ambiguous": 0, "ordinary": 0, "steady": 1, "contemplative": 1,
+    "surreal": 2, "toned-down": 0,
 
     # Negative Words
     "mediocre": -1, "predictable": -1, "forgettable": -1, "formulaic": -1, "slow": -2,
     "uninspired": -2, "cliché": -2, "unrealistic": -2, "dry": -2, "flat": -2,
-    "underdeveloped": -2, "meh": -2, "confusing": -2, "lackluster": -2, "awkward": -2,
-    "weak": -2, "repetitive": -2, "safe": -2, "thin": -2, "shaky": -2,
-    "clunky": -2, "overused": -2, "dull": -3, "unoriginal": -3, "underwhelming": -3,
-    "overrated": -3, "cheesy": -3, "forced": -3, "messy": -3, "lifeless": -3,
-    "dragging": -3, "plot holes": -3, "wooden acting": -3, "bad CGI": -3, "annoying": -3,
-    "frustrating": -3, "meaningless": -3, "empty": -3, "poorly-executed": -3, "disjointed": -3,
-    "nonsensical": -3, "ridiculous": -3, "over-the-top": -3, "flat-characters": -3, "exaggerated": -3,
+    "underdeveloped": -2, "confusing": -2, "lackluster": -2, "awkward": -2, "weak": -2,
+    "repetitive": -2, "safe": -2, "thin": -2, "shaky": -2, "clunky": -2,
+    "overused": -2, "dull": -3, "unoriginal": -3, "underwhelming": -3, "overrated": -3,
+    "cheesy": -3, "forced": -3, "messy": -3, "lifeless": -4, "dragging": -3,
+    "plot holes": -3, "wooden acting": -3, "bad CGI": -3, "annoying": -3, "frustrating": -3,
+    "meaningless": -3, "empty": -3, "poorly-executed": -3, "disjointed": -3, "nonsensical": -3,
+    "ridiculous": -3, "over-the-top": -3, "flat-characters": -3, "exaggerated": -3,
     "boring": -4, "disappointing": -4, "flop": -4, "cringe": -4, "waste": -4,
     "waste-of-time": -4, "cringeworthy": -4, "shocking": -4, "disturbing": -4, "forced-dialogue": -4,
     "painful": -5, "horrible": -5, "terrible": -5, "trash": -5, "worst": -5,
     "atrocious": -5, "devastating": -5, "horrific": -5, "disgusting": -5, "hate": -5,
-    "angry": -5, "unwatchable": -5, "nauseating": -5, "garbage": -5, "insulting": -5, "anxious": -2, 
-    "terrifying": -3, "surprised": 1, "tense": -1, "tearjerker": 4, "beautiful": 4, "nostalgic": 1,
+    "angry": -5, "unwatchable": -5, "nauseating": -5, "garbage": -5, "insulting": -5,
+    "anticlimactic": -3, "unconvincing": -3, "pretentious": -4, "hollow": -3, "lifeless-performance": -3,
+    "melodramatic": -3, "soulless": -4, "lazy": -3, "sloppy": -3, "clumsy": -3,
+    "painful-dialogue": -4, "generic": -2, "flat-ending": -3, "pointless": -4, "shallow": -3,
+    "unpleasant": -3, "gloomy": -2, "depressing": -3, "hopeless": -4, "furious": -4,
+    "bitter": -3, "rage-filled": -4, "anxious-energy": -2, "messy-editing": -3,
+    "inconsistent": -2, "overstuffed": -2, "chaotic": -3, "overly-long": -2, "tedious": -3,
 
     # Strong Emotions (Positive & Negative)
     "love": 5, "excited": 4, "joy": 4, "funny": 4, "satisfying": 4, "enthusiastic": 4,
     "hate": -5, "angry": -5, "frustrated": -4, "disgusting": -5, "horrific": -5,
     "devastating": -5, "shocking": -4, "unbelievable": -3, "scary": -3, "disturbing": -4,
+    "hopeful": 3, "content": 3, "furious": -4, "bitter": -3,
 
     # Common Words From Twitter
     "fire": 4, "goat": 5, "slaps": 4, "based": 4, "mid": -2,
@@ -106,6 +206,7 @@ sentiment_dict = {
     "melodramatic": -2, "heavy-handed": -2, "understated": 2, "visionary": 4, "self-aware": 3,
     "raw": 3, "elevated": 3, "cinematography": 3, "editing": 2, "score": 2
 }
+
 
 # Function to clean the tweet
 def clean_tweet(tweet):
