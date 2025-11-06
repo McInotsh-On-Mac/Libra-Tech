@@ -1,93 +1,114 @@
+import os
 import tweepy
 import sys
 import re
-from twitter_setup import client
-import langdetect
+import time
+from dotenv import load_dotenv
+
+# load local .env
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
+
+from .twitter_setup import client
 from langdetect import detect, LangDetectException
-from .db import get_db_connection
 
-
-print("fetch_tweets.py has started running...")
-#TODO: Refactor to be modular for UI integration
+print("fetch_tweets.py started")
 
 def remove_emojis(tweet_text):
-    #remove emohies using regex pattern (unicode ranges for emojies)
-    return re.sub(r'[^\x00-\x7F]+', '', tweet_text)
-
+    return re.sub(r'[^\x00-\x7F]+', '', tweet_text or "")
 
 def is_english(tweet_text):
     try:
-        #detect language
         return detect(tweet_text) == 'en'
     except LangDetectException:
-        return False #if detection fails, consider it not english
+        return False
     
-def fetch_tweets_v2(keyword, count=10):
-    # TODO: refactor this into fetch_and_store_tweets()
-    """ Fetch tweets based on a keyword and display them """
+# (Benjamin): Fetch function for UI integration
+def fetch_tweets_for_ui(keyword, count=10, max_api_pages=1, api_wait_seconds=1):
+    """
+    Fetch tweets function with debug prints. Returns dict {'success','tweets','message','count'}.
+
+    max_api_pages controls how many batches of tweets to request from Twitter; 
+    default 1 prevents fetching too many tweets and hitting rate limits.
+    """
+    print(f"FETCH start for keyword='{keyword}' count={count}")
+    result = {'success': False, 'tweets': [], 'message': '', 'count': 0}
+    if not keyword or not keyword.strip():
+        result['message'] = "No keyword provided."
+        return result
+
     try:
-        count = max(1, min(count, 10))
-        # Fetch tweets with the provided keyword
-        response = client.search_recent_tweets(query=keyword, max_results=10)
-        
-        raw_tweets = []
-        seen_tweets = set()
-        shown = 0
+        count = max(1, min(int(count), 100))
+    except Exception:
+        count = 10
 
-        if response and response.data:
-            print(f"\nFetched tweets for keyword: '{keyword}'\n")
+    collected = []
+    seen = set()
+    next_token = None
+    pages = 0
+    sequential_counter = 1
 
-            for tweet in response.data:
-                if shown >= count:
+    try:
+        while len(collected) < count and pages < max_api_pages:
+            pages += 1
+            print(f"API request page {pages} next_token={next_token}")
+            try:
+                # create request
+                resp = client.search_recent_tweets(
+                    query=keyword,
+                    max_results=min(100, max(10, count)),
+                    tweet_fields=["id", "text", "created_at", "author_id"],
+                    next_token=next_token
+                )
+            except Exception as api_e:
+                print("API call exception:", api_e)
+                result['message'] = f"API error: {api_e}"
+                return result
+
+            print("API call returned, checking data...")
+            if not resp or not getattr(resp, "data", None):
+                print("no data in response")
+                break
+
+            for t in resp.data:
+                text = getattr(t, "text", "") or ""
+                text = remove_emojis(text).strip()
+                if not text:
+                    continue
+                if not is_english(text):
+                    continue
+                one_line = text.replace("\n", " ")
+                if one_line in seen:
+                    continue
+                seen.add(one_line)
+
+                collected.append(one_line)
+                # Increment counter for next tweet
+                sequential_counter += 1
+                print(f"[FETCH] collected {len(collected)}/{count}")
+                if len(collected) >= count:
                     break
 
-                text = tweet.text.strip()
-                text = remove_emojis(text)
+            # handle pagination token if present
+            meta = getattr(resp, "meta", None)
+            next_token = None
+            if meta and isinstance(meta, dict):
+                next_token = meta.get("next_token")
 
-                if not text or not is_english(text) or text in seen_tweets:
-                    continue #skip if the tweet is not in english or duplicate
-                
-                text_one_line = text.replace("\n", " ")
-                raw_tweets.append(text_one_line)
-                seen_tweets.add(text_one_line)
-                shown += 1
+            if next_token:
+                print(f"next_token present, waiting {api_wait_seconds}s before next page")
+                time.sleep(api_wait_seconds)
+            else:
+                print("no next_token, finishing")
+                break
 
-            if not raw_tweets:
-                print("No suitable English tweets found.")
-                return
-                
-            #TODO: Store tweets in DB 
-            with open("raw_tweets.txt", "w", encoding="utf-8") as file:
-                for tweet in raw_tweets:
-                    file.write(tweet + "\n")
-
-            # Print aligned and numbered output
-            print("Tweets Fetched:\n")
-            max_digits = len(str(len(raw_tweets)))
-            for i, tweet in enumerate(raw_tweets, 1):
-                num_str = f"{i}".rjust(max_digits)
-                print(f"{num_str}. {tweet}")
-            print("\nAll tweets saved to 'raw_tweets.txt'.\n")
-
+        if collected:
+            result.update({'success': True, 'tweets': collected, 'count': len(collected),
+                           'message': f"Fetched {len(collected)} tweets for '{keyword}'"})
         else:
-            print("No tweets found.")
+            result['message'] = f"No suitable tweets found for '{keyword}'."
     except Exception as e:
-        print(f"Error fetching tweets: {e}")
+        print("[FETCH] unexpected exception:", e)
+        result['message'] = f"Unexpected error: {e}"
 
-
-def store_tweet_in_db(text, user_id=None):
-    # TODO(Elali): Implement logic to store tweet in the database.
-    pass
-
-def fetch_and_store_tweets(keyword, count=10, user_id=None):
-    # TODO: Integrate with UI, fetch tweets, store in DB, and return list for display.
-    pass
-
-# should be removed after refactor
-if __name__ == "__main__":
-    # Check if a keyword is passed as a command line argument
-    if len(sys.argv) > 1:
-        keyword = sys.argv[1]  # Get the keyword passed from the command line
-        fetch_tweets_v2(keyword)
-    else:
-        print("No keyword provided.")
+    print("FETCH finished:", result.get('message'))
+    return result
