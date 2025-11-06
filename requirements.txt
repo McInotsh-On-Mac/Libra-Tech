@@ -1,20 +1,29 @@
 # API wrappers
-praw
-tweepy
+praw>=7.6.0
+tweepy>=4.14.0
 
 # Plotting and visualization
-matplotlib
+matplotlib>=3.6.0
 
 # NLP and Sentiment Analysis
-nltk
-pyspellchecker
-langdetect
+nltk>=3.8.0
+pyspellchecker>=0.7.0
+langdetect>=1.0.9
+textblob>=0.17.1
 
 # Database
-psycopg2-binary
+psycopg2-binary>=2.9.0
 
 # Encryption
-cryptography
+cryptography>=3.4.8
+bcrypt>=4.0.0
 
 # Environment variable loader
-python-dotenv
+python-dotenv>=1.0.0
+
+# GUI dependencies (automatically installed with Python on most systems)
+# tkinter (comes with Python standard library)
+
+# Additional utilities
+requests>=2.28.0
+packaging>=21.0
