@@ -225,7 +225,7 @@ class APIConfigScreen:
         # Validate all fields are filled
         if not all([api_key, api_secret, access_token, access_secret, bearer_token]):
             self.status_label.config(
-                text="❌ Please fill in all fields",
+                text="Please fill in all fields",
                 fg="red"
             )
             messagebox.showerror("Validation Error", "All credential fields are required.")
@@ -279,7 +279,7 @@ class APIConfigScreen:
             
         except Exception as e:
             self.status_label.config(
-                text=f"❌ Error saving credentials: {str(e)}",
+                text=f"Error saving credentials: {str(e)}",
                 fg="red"
             )
             messagebox.showerror("Error", f"Failed to save credentials:\n{str(e)}")

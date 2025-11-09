@@ -3,12 +3,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Environment variables file (contains Twitter API keys)
-.env
-.env.local
-.env.development
-.env.test
-.env.production
 
 # macOS system files
 __MACOSX/
