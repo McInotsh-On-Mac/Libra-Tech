@@ -21,7 +21,7 @@ auth = tweepy.OAuthHandler(API_KEY, API_SECRET)
 auth.set_access_token(ACCESS_TOKEN, ACCESS_SECRET)
 
 # Create API v1.1 object with automatic rate limit handling
-api = tweepy.API(auth, wait_on_rate_limit=False)
+api = tweepy.API(auth, wait_on_rate_limit=False)  # Changed to False
 
 # Authenticate using API v2 (for fetching tweets) with rate limit handling
 client = tweepy.Client(
@@ -30,7 +30,7 @@ client = tweepy.Client(
     consumer_secret=API_SECRET,
     access_token=ACCESS_TOKEN,
     access_token_secret=ACCESS_SECRET,
-    wait_on_rate_limit=False
+    wait_on_rate_limit=False  # Changed to False - we'll handle this manually
 )
 
 def check_rate_limit_status():
@@ -67,4 +67,5 @@ def test_authentication():
 if __name__ == "__main__":
     test_authentication()
 else:
+    # Quick authentication check when imported (but don't print on every import)
     pass

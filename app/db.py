@@ -2,8 +2,6 @@ import psycopg2
 import os
 from dotenv import load_dotenv
 
-# TODO(Jania):(User Auth DB Migration): Set up connection utility and environment variable handling.
-# TODO(Elali):(Tweets & Sentiment DB Migration): Add functions for tweets and sentiment database access.
 
 load_dotenv()
 def get_db_connection():
@@ -45,6 +43,7 @@ def initialize_tables():
     """
     Creates necessary tables if they do not exist.
     """
+    # (Jania) Create user authentication table
     user_table = """
     CREATE TABLE IF NOT EXISTS users (
         user_id SERIAL PRIMARY KEY,
@@ -53,23 +52,22 @@ def initialize_tables():
     );
     """
     execute_query(user_table)
-    
-    sentiment_table = """
-    CREATE TABLE IF NOT EXISTS sentiments (
-        tweet_id SERIAL PRIMARY KEY,
-        score INT NOT NULL, 
-        label VACHAR(255)
-    );
-    """
-    execute_query(sentiment_table)
 
-    tweets_table = """
-    CREATE TABLE IF NOT EXISTS tweets (
-        tweet_id SERIAL PRIMARY KEY,
-        user_id INT NOT NULL,
-        content VARCHAR(255),
-        timestamp TIMESTAMP
+    # (Elali) Create movie sentiment history table
+    movie_sentiment_history = """
+    CREATE TABLE IF NOT EXISTS movie_sentiment_history (
+        id SERIAL PRIMARY KEY, -- Auto-incrementing primary key
+        movie_name VARCHAR(255) NOT NULL,
+        overall_sentiment VARCHAR(255) NOT NULL,
+        total_tweets_analyzed INTEGER NOT NULL DEFAULT 0,
+        positive_count INTEGER NOT NULL DEFAULT 0,
+        negative_count INTEGER NOT NULL DEFAULT 0,
+        neutral_count INTEGER NOT NULL DEFAULT 0,
+        positive_percentage DECIMAL (5,2) NOT NULL DEFAULT 0.0,
+        negative_percentage DECIMAL (5,2) NOT NULL DEFAULT 0.0,
+        neutral_percentage DECIMAL (5,2) NOT NULL DEFAULT 0.0,
+        sentiment_score DECIMAL (8,3) NOT NULL DEFAULT 0.0,
+        analyzed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
     );
     """
-    execute_query(tweets_table)
-    
+    execute_query(movie_sentiment_history)
