@@ -1,15 +1,18 @@
+# app/fetch_tweets.py
+
 import os
 import tweepy
 import sys
 import re
 import time
 from dotenv import load_dotenv
+from langdetect import detect, LangDetectException
 
 # load local .env
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
-from .twitter_setup import client
-from langdetect import detect, LangDetectException
+# Import the get_client function instead of client directly
+from .twitter_setup import get_client
 
 print("fetch_tweets.py started")
 
@@ -32,8 +35,16 @@ def fetch_tweets_for_ui(keyword, count=10, max_api_pages=1, api_wait_seconds=1):
     """
     print(f"FETCH start for keyword='{keyword}' count={count}")
     result = {'success': False, 'tweets': [], 'message': '', 'count': 0}
+    
     if not keyword or not keyword.strip():
         result['message'] = "No keyword provided."
+        return result
+
+    # Get the Twitter client (lazy loading)
+    client = get_client()
+    if client is None:
+        result['message'] = "Twitter API credentials not configured. Please set up your API credentials first."
+        print("[FETCH] Twitter client not available - credentials missing")
         return result
 
     try:
