@@ -20,9 +20,5 @@ bcrypt
 # Environment variable loader
 python-dotenv
 
-# API Framework
-flask
-flask-cors
-
 # Testing
 pytest
