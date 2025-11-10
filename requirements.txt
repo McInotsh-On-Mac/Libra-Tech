@@ -15,6 +15,14 @@ psycopg2-binary
 
 # Encryption
 cryptography
+bcrypt
 
 # Environment variable loader
 python-dotenv
+
+# API Framework
+flask
+flask-cors
+
+# Testing
+pytest
