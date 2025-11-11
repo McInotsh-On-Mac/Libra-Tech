@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> f715db17172f8a51fe3fcbcc1e3593d1653be9f2
 
 # macOS system files
 __MACOSX/
