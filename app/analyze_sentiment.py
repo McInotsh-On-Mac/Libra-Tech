@@ -7,10 +7,11 @@ from nltk.corpus import wordnet
 from spellchecker import SpellChecker
 import os
 from datetime import datetime 
-from dotenv import load_dotenv
+from app.utils.env_loader import load_env
+load_env()
 
 # Load environment variables
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
+##load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 # Initialize tools and vocab
 stop_words = set(stopwords.words('english'))
@@ -18,7 +19,7 @@ lemmatizer = WordNetLemmatizer()
 english_vocab = set(w.lower() for w in words.words())
 spell = SpellChecker()
 
-# Slang whitelist and shorthand map
+# Slang whitelist and shorthand map (Benjamin Herron)
 slang_whitelist = {
     # Base list
     "u", "dm", "rn", "pls", "idk", "lol", "brb", "gtg", "lmao", "omg", "tbh",
@@ -128,7 +129,7 @@ shorthand_map = {
 
 
 
-#sentiment dictionary
+#sentiment dictionary (Benjamin Herron)
 sentiment_dict = {
     # Strong Positive Words
    "masterpiece": 5, "blockbuster": 5, "must-watch": 5, "award-worthy": 5, "oscar-worthy": 5, 

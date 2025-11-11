@@ -1,16 +1,18 @@
-import tweepy
+# app/twitter_setup.py
+
 import os
-from dotenv import load_dotenv
+import tweepy
+from app.utils.env_loader import load_env
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env
+load_env()
 
-# Retrieve API keys from environment variables
-API_KEY = os.getenv("API_KEY")
-API_SECRET = os.getenv("API_SECRET")
-ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
-ACCESS_SECRET = os.getenv("ACCESS_SECRET")
-BEARER_TOKEN = os.getenv("BEARER_TOKEN")
+# Retrieve Twitter API keys from environment variables
+API_KEY = os.getenv("TWITTER_API_KEY") or os.getenv("API_KEY")
+API_SECRET = os.getenv("TWITTER_API_SECRET") or os.getenv("API_SECRET")
+ACCESS_TOKEN = os.getenv("TWITTER_ACCESS_TOKEN") or os.getenv("ACCESS_TOKEN")
+ACCESS_SECRET = os.getenv("TWITTER_ACCESS_TOKEN_SECRET") or os.getenv("ACCESS_SECRET")
+BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN") or os.getenv("BEARER_TOKEN")
 
 # Ensure all required variables are loaded
 if not all([API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_SECRET, BEARER_TOKEN]):
@@ -19,11 +21,9 @@ if not all([API_KEY, API_SECRET, ACCESS_TOKEN, ACCESS_SECRET, BEARER_TOKEN]):
 # Authenticate to Twitter API v1.1
 auth = tweepy.OAuthHandler(API_KEY, API_SECRET)
 auth.set_access_token(ACCESS_TOKEN, ACCESS_SECRET)
-
-# Create API v1.1 object with automatic rate limit handling
 api = tweepy.API(auth, wait_on_rate_limit=False)
 
-# Authenticate using API v2 (for fetching tweets) with rate limit handling
+# Authenticate using API v2 (for fetching tweets)
 client = tweepy.Client(
     bearer_token=BEARER_TOKEN,
     consumer_key=API_KEY,
@@ -34,7 +34,7 @@ client = tweepy.Client(
 )
 
 def check_rate_limit_status():
-    """Check current rate limit status"""
+    """Check current rate limit status for search API."""
     try:
         rate_limit_status = api.get_rate_limit_status()
         search_limit = rate_limit_status['resources']['search']['/search/tweets']
@@ -44,11 +44,11 @@ def check_rate_limit_status():
             'limit': search_limit['limit']
         }
     except Exception as e:
+        print(f"Error fetching rate limit: {e}")
         return None
 
-# Test authentication
 def test_authentication():
-    """Test both API v1.1 and v2 authentication"""
+    """Test both API v1.1 and v2 authentication."""
     try:
         # Test API v1.1
         user = api.verify_credentials()
@@ -57,14 +57,11 @@ def test_authentication():
         # Test API v2
         me = client.get_me()
         print(f"API v2 Authentication successful! User ID: {me.data.id}")
-        
         return True
     except Exception as e:
         print(f"Authentication failed: {e}")
         return False
 
-# Run authentication test when module is imported
+# Optional: run test when module is executed directly
 if __name__ == "__main__":
     test_authentication()
-else:
-    pass
