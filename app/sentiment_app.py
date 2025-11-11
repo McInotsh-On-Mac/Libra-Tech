@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from .sample_tweets import generate_sample_tweets  # Use sample tweets instead
 from .fetch_tweets import fetch_tweets_for_ui  # Real API fetcher
 from .chart_sentiment import create_sentiment_charts
+from .analyze_sentiment import analyze_sentiment  # Import analyze_sentiment function
 
 # brand + accessibility colors
 BRAND_DARK_BLUE = "#1A237E"   # original brand blue (still used for title)
@@ -60,47 +61,57 @@ class SentimentAnalysisApp:
         self.init_charts_tab()
 
     def init_analysis_tab(self):
-        # main frame
-        self.frame = tk.Frame(self.analysis_tab, bg=LIGHT_GRAY_BG, padx=30, pady=20)  # Increased horizontal padding
+        # Main frame for the Analysis tab
+        self.frame = tk.Frame(self.analysis_tab, bg=LIGHT_GRAY_BG, padx=30, pady=20)
         self.frame.pack(expand=True, fill=tk.BOTH)
 
-        # Main Title (Branded)
-        tk.Label(self.frame, text="Libra Technology: Movie Sentiment Analysis Tool", 
-                 font=("Helvetica", 16, "bold"), bg=LIGHT_GRAY_BG, fg=BRAND_DARK_BLUE).pack(pady=10) # Displays the branded title.
+        # Main Title
+        tk.Label(self.frame, text="Libra Technology: Movie Sentiment Analysis Tool",
+                 font=("Helvetica", 16, "bold"), bg=LIGHT_GRAY_BG, fg=BRAND_DARK_BLUE).pack(pady=10)
 
-        # --- keyword entry box ---
-        keyword_frame = tk.Frame(self.frame, bg=LIGHT_GRAY_BG) # Frame to hold the input area.
-        keyword_frame.pack(pady=5) # Places the frame below the title.
-        tk.Label(keyword_frame, text="Enter Movie Keyword:", font=("Arial", 12), 
-                 bg=LIGHT_GRAY_BG).pack(side=tk.LEFT, padx=5) # Label prompting for the movie keyword.
-        self.keyword_entry = tk.Entry(keyword_frame, font=("Arial", 12), width=30) # The text box for the user to type in.
-        self.keyword_entry.pack(side=tk.LEFT, padx=5) # Places the text box next to the label.
+        # Keyword Entry
+        keyword_frame = tk.Frame(self.frame, bg=LIGHT_GRAY_BG)
+        keyword_frame.pack(pady=5)
+        tk.Label(keyword_frame, text="Enter Movie Keyword:", font=("Arial", 12),
+                 bg=LIGHT_GRAY_BG, fg=BRAND_DARK_BLUE).pack(side=tk.LEFT, padx=5)
+        self.keyword_entry = tk.Entry(keyword_frame, font=("Arial", 12), width=30)
+        self.keyword_entry.pack(side=tk.LEFT, padx=5)
 
-        # placeholder and focus handlers
+        # Placeholder and focus handlers
         self.placeholder_text = "e.g., Dune 2, Inside Out 2, Oppenheimer"
         self._set_entry_placeholder()
         self.keyword_entry.bind("<FocusIn>", self._on_entry_focus_in)
         self.keyword_entry.bind("<FocusOut>", self._on_entry_focus_out)
 
-        # --- output text box with scrollbar ---
-        text_frame = tk.Frame(self.frame) # Frame to hold the large text display area.
-        text_frame.pack(pady=10, padx=10, fill=tk.BOTH, expand=True) # Places the frame and allows it to grow.
-        scrollbar = tk.Scrollbar(text_frame) # Vertical scroll bar for long text output.
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y) # Places the scrollbar on the right.
+        # Output Text Box with Scrollbar
+        text_frame = tk.Frame(self.frame)
+        text_frame.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
+        scrollbar = tk.Scrollbar(text_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.output_text = tk.Text(text_frame, wrap=tk.WORD, height=12, font=("Arial", 12), yscrollcommand=scrollbar.set) # The main output box for messages and results.
-        self.output_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True) # Places the text box next to the scrollbar.
-        scrollbar.config(command=self.output_text.yview) # Connects the scrollbar to the text box.
-        
-        # Output Text Tags (for color-coding different output types)
-        self.output_text.tag_config('pos', foreground='green', font=("Arial", 10, "bold")) # Tag for positive results (green text). Updated by Ryan on 11/3/2025
-        self.output_text.tag_config('neg', foreground='red', font=("Arial", 10, "bold")) # Tag for negative results (red text). Updated by Ryan on 11/3/2025
-        self.output_text.tag_config('title', foreground=BRAND_DARK_BLUE, font=("Arial", 12, "bold")) # Tag for section titles (blue, bold). Updated by Ryan on 11/3/2025
-        self.output_text.tag_config('muted', foreground='#666666') # Tag for progress/less important messages (gray). Updated by Ryan on 11/3/2025
+        self.output_text = tk.Text(
+            text_frame,
+            wrap=tk.WORD,
+            height=12,
+            font=("Arial", 12),
+            yscrollcommand=scrollbar.set,
+            bg="#FFFFFF",  # White background for better readability
+            fg="#000000"   # Default text color (black)
+        )
+        self.output_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=self.output_text.yview)
+
+        # Define Output Text Tags for clarity
+        self.output_text.tag_config('pos', foreground='#228B22', font=("Arial", 10, "bold"))  # Green for positive
+        self.output_text.tag_config('neg', foreground='#B22222', font=("Arial", 10, "bold"))  # Red for negative
+        self.output_text.tag_config('neutral', foreground='#808080', font=("Arial", 10, "italic"))  # Gray for neutral
+        self.output_text.tag_config('title', foreground=BRAND_DARK_BLUE, font=("Arial", 12, "bold"))  # Blue for titles
+        self.output_text.tag_config('muted', foreground='#A9A9A9')  # Light gray for less important messages
+        self.output_text.tag_config('separator', foreground='#000000', font=("Arial", 10))  # Black for separators
 
         # --- buttons ---
-        btn_frame = tk.Frame(self.frame, bg=LIGHT_GRAY_BG) # Frame to hold the action buttons.
-        btn_frame.pack(pady=10) # Places the button frame at the bottom.
+        btn_frame = tk.Frame(self.frame, bg=LIGHT_GRAY_BG)  # Frame to hold the action buttons.
+        btn_frame.pack(pady=10)  # Places the button frame at the bottom.
 
         # Combined Fetch + Analyze button (single control)
         self.fetch_analyze_button = tk.Button(
@@ -149,23 +160,33 @@ class SentimentAnalysisApp:
             self.chart_frames[window] = frame
 
     def append_output(self, output, tag=None):
-        """Append a timestamped message to the output text box and stdout.
-        Optional tkinter text tag may be provided for coloring.
         """
-        ts = datetime.datetime.now().strftime("%H:%M:%S")
+        Append a message to the output text box with an optional tag for styling.
+        """
+        ts = datetime.datetime.now().strftime("%H:%M:%S")  # Add a timestamp
         try:
-            # prefix timestamp
+            # Prefix timestamp
             self.output_text.insert(tk.END, f"[{ts}] ", "muted")
-            if tag:
-                self.output_text.insert(tk.END, output + "\n", tag)
+            if tag == 'separator':
+                self.output_text.insert(tk.END, "—" * 50 + "\n", tag)  # Add a horizontal separator
+            elif tag == 'title':
+                self.output_text.insert(tk.END, f"🔹 {output}\n", tag)  # Add a blue bullet for titles
+            elif tag == 'pos':
+                self.output_text.insert(tk.END, f"✅ {output}\n", tag)  # Add a green checkmark for positive
+            elif tag == 'neg':
+                self.output_text.insert(tk.END, f"❌ {output}\n", tag)  # Add a red cross for negative
+            elif tag == 'neutral':
+                self.output_text.insert(tk.END, f"⚪ {output}\n", tag)  # Add a white circle for neutral
             else:
-                self.output_text.insert(tk.END, output + "\n")
-            self.output_text.see(tk.END)
+                self.output_text.insert(tk.END, output + "\n", tag)  # Default behavior
+
+            self.output_text.see(tk.END)  # Scroll to the bottom
         except Exception:
-            # fall back to simple insert in case of tag issues
+            # Fallback to simple insert in case of tag issues
             self.output_text.insert(tk.END, output + "\n")
             self.output_text.see(tk.END)
-        # also print to stdout for logs
+
+        # Also print to stdout for debugging
         print(output)
 
     # (Benjamin) Fetch tweets function
@@ -259,105 +280,47 @@ class SentimentAnalysisApp:
     # (Jania) Sentiment analysis function
     def open_sentiment_analysis(self):
         """
-        Analyze the currently fetched tweets using analyze_tweets.
+        Analyze the currently fetched tweets and provide a comprehensive summary.
         """
         if not self.current_tweets:
-            messagebox.showwarning("No Tweets", "Please fetch tweets first before analyzing sentiment.")
+            self.append_output("No tweets to analyze. Please fetch tweets first.", "neg")
             return
 
-        try:
-            # disable button during analysis
-            try:
-                self.fetch_analyze_button.config(state=tk.DISABLED, bg="#BDBDBD")
-            except Exception:
-                pass
-            self.append_output(f"🎬 Analyzing sentiment for {len(self.current_tweets)} tweets about '{self.current_keyword}'...", "muted")
+        self.append_output("Starting comprehensive sentiment analysis...", "title")
+        self.append_output("", "separator")
 
-            # import analyze_tweets
-            from .analyze_sentiment import analyze_tweets
+        # Initialize counters
+        total_score = 0
+        positive_count = 0
+        negative_count = 0
+        neutral_count = 0
 
-            # call analysis
-            analysis_result = analyze_tweets(self.current_tweets, self.current_keyword)
+        # Analyze all tweets
+        for tweet in self.current_tweets:
+            sentiment, score, matched_words = analyze_sentiment(tweet.split())
+            total_score += score
 
-            if analysis_result.get("success"):
-                self.output_text.insert(tk.END, "—" * 60 + "\n", "muted")
-                self.append_output("📊 SENTIMENT ANALYSIS RESULTS", "title")
-                self.output_text.insert(tk.END, "—" * 60 + "\n", "muted")
-
-                # Decide whether to show detailed results; avoid modal dialogs in this environment
-                show_details = True if len(self.current_tweets) <= 5 else False
-
-                if show_details and analysis_result.get("detailed_results"):
-                    self.append_output("\n🔍 DETAILED ANALYSIS:", "title")
-                    self.output_text.insert(tk.END, "—" * 40 + "\n", "muted")
-
-                    for i, res in enumerate(analysis_result["detailed_results"], 1):
-                        sentiment = res.get("sentiment", "Unknown")
-                        score = res.get("score", 0.0)
-                        text = res.get("text", "")
-                        matched = res.get("matched_words", [])
-                        tag = "pos" if sentiment.lower().startswith("pos") else "neg" if sentiment.lower().startswith("neg") else None
-                        self.append_output(f"Tweet {i}: {sentiment} (Score: {score:.2f})", tag)
-                        self.append_output(f"   Text: {text}")
-                        if matched:
-                            self.append_output(f"   Key words: {', '.join(matched)}")
-                        self.append_output("")
-
-                # style: color-coded and sentiment scale ---
-                counts = analysis_result.get("sentiment_counts", {})
-                # map common keys to pos/neg
-                pos = counts.get("Positive", 0) + counts.get("positive", 0) + counts.get("Pos", 0)
-                neg = counts.get("Negative", 0) + counts.get("negative", 0) + counts.get("Neg", 0)
-                # fallback: if detailed_results exist, derive counts there
-                if pos == 0 and neg == 0 and analysis_result.get("detailed_results"):
-                    for d in analysis_result["detailed_results"]:
-                        s = (d.get("sentiment") or "").lower()
-                        if s.startswith("pos"):
-                            pos += 1
-                        elif s.startswith("neg"):
-                            neg += 1
-
-                total = max(1, pos + neg)
-                score = round((pos - neg) / total, 2)
-
-                # header
-                self.output_text.insert(tk.END, "\n", ())
-                self.output_text.insert(tk.END, "Analysis Summary:\n", "title")
-                self.output_text.insert(tk.END, "—" * 16 + "\n", "muted")
-
-                # numbers + verdict (color coded)
-                verdict = "Overall Positive" if score > 0 else "Overall Negative" if score < 0 else "mixed/neutral"
-                verdict_tag = "pos" if score >= 0 else "neg"
-                self.append_output(f"Positives={pos}, Negatives={neg}, Score={score}", verdict_tag)
-
-                # ascii/visual bar
-                bar_len = 24
-                pos_blocks = int((pos / total) * bar_len) if total > 0 else 0
-                pos_blocks = max(0, min(bar_len, pos_blocks))
-                bar = f"[{'▮' * pos_blocks}{'▯' * (bar_len - pos_blocks)}]  {int((pos/total)*100)}% positive"
-                self.append_output(bar, "muted")
-
-                # verdict line color-coded
-                self.append_output(verdict, verdict_tag)
-
-                # end separator
-                self.output_text.insert(tk.END, "—" * 60 + "\n", "muted")
-                
-                # Update charts after analysis
-                self.update_charts()
+            if sentiment == "Positive":
+                positive_count += 1
+            elif sentiment == "Negative":
+                negative_count += 1
             else:
-                self.append_output(f"Analysis failed: {analysis_result.get('message', 'Unknown error')}", "neg")
-        except ImportError as ie:
-            self.append_output(f"Import error: {ie}", "neg")
-            messagebox.showerror("Import Error", f"Could not import sentiment analysis: {ie}")
-        except Exception as e:
-            self.append_output(f"Error during analysis or display: {e}", "neg") # Log error during analysis/display.
-            messagebox.showerror("Analysis Error", f"Failed to analyze or display sentiment: {e}") # Show pop-up error.
-            
-        finally:
-            # Re-enable combined button and restore color.
-            try:
-                self.fetch_analyze_button.config(state=tk.NORMAL, bg=BTN_BG)
-            except Exception:
-                pass
-            self.append_output("\n--- PROCESS COMPLETE ---", "title")
+                neutral_count += 1
+
+        # Calculate positivity score
+        total_tweets = len(self.current_tweets)
+        positivity_score = (positive_count / total_tweets) * 100 if total_tweets > 0 else 0
+
+        # Display comprehensive analysis
+        self.append_output("Comprehensive Sentiment Analysis Results:", "title")
+        self.append_output("", "separator")
+        self.append_output(f"Total Tweets Analyzed: {total_tweets}", "muted")
+        self.append_output(f"Positive Tweets: {positive_count}", "pos")
+        self.append_output(f"Negative Tweets: {negative_count}", "neg")
+        self.append_output(f"Neutral Tweets: {neutral_count}", "neutral")
+        self.append_output(f"Overall Sentiment Score: {total_score}", "muted")
+        self.append_output(f"Positivity Score: {positivity_score:.2f}%", "title")
+        self.append_output("", "separator")
+
+        # Display final message
+        self.append_output("Sentiment analysis complete!", "title")
