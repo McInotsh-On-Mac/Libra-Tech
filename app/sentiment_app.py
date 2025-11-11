@@ -8,6 +8,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 
 from .sample_tweets import generate_sample_tweets  # Use sample tweets instead
+from .fetch_tweets import fetch_tweets_for_ui  # Real API fetcher
 from .chart_sentiment import create_sentiment_charts
 
 # brand + accessibility colors
@@ -20,7 +21,7 @@ BTN_BG_ACTIVE    = "#1E40FF"   # darker on press
 BTN_FG           = "#000000"   # black text for readability
 BTN_FG_DISABLED  = "#333333"   # dim black when disabled
 ENTRY_BG         = "#FFFFFF"   # white input bg
-ENTRY_FG         = "#000000"   # black typing
+ENTRY_FG         = "#FFFFFF"   # white typing
 ENTRY_PLACEHOLDER= "#8A8A8A"   # gray placeholder
 SELECTION_BG     = "#CCE0FF"
 SELECTION_FG     = "#000000"
@@ -75,6 +76,12 @@ class SentimentAnalysisApp:
         self.keyword_entry = tk.Entry(keyword_frame, font=("Arial", 12), width=30) # The text box for the user to type in.
         self.keyword_entry.pack(side=tk.LEFT, padx=5) # Places the text box next to the label.
 
+        # placeholder and focus handlers
+        self.placeholder_text = "e.g., Dune 2, Inside Out 2, Oppenheimer"
+        self._set_entry_placeholder()
+        self.keyword_entry.bind("<FocusIn>", self._on_entry_focus_in)
+        self.keyword_entry.bind("<FocusOut>", self._on_entry_focus_out)
+
         # --- output text box with scrollbar ---
         text_frame = tk.Frame(self.frame) # Frame to hold the large text display area.
         text_frame.pack(pady=10, padx=10, fill=tk.BOTH, expand=True) # Places the frame and allows it to grow.
@@ -95,33 +102,18 @@ class SentimentAnalysisApp:
         btn_frame = tk.Frame(self.frame, bg=LIGHT_GRAY_BG) # Frame to hold the action buttons.
         btn_frame.pack(pady=10) # Places the button frame at the bottom.
 
-        # high-contrast fetch button
-        self.search_button = tk.Button(
+        # Combined Fetch + Analyze button (single control)
+        self.fetch_analyze_button = tk.Button(
             btn_frame,
-            text="Fetch Tweets",
-            command=self.open_fetch_tweets,
+            text="Fetch & Analyze",
+            command=lambda: self.open_fetch_tweets(do_analyze=True),
             font=("Arial", 12, "bold"),
             bg=BTN_BG, fg=BTN_FG,
             activebackground=BTN_BG_ACTIVE, activeforeground=BTN_FG,
             disabledforeground=BTN_FG_DISABLED,
             padx=10, pady=5, highlightthickness=0
         )
-        self.search_button.grid(row=0, column=0, padx=5)
-
-        # high-contrast analyze button
-        self.analysis_button = tk.Button(
-            btn_frame,
-            text="Analyze Sentiment",
-            command=self.open_sentiment_analysis,
-            font=("Arial", 12, "bold"),
-            bg=BTN_BG, fg=BTN_FG,
-            activebackground=BTN_BG_ACTIVE, activeforeground=BTN_FG,
-            disabledforeground=BTN_FG_DISABLED,
-            padx=10, pady=5, highlightthickness=0
-        )
-        # start disabled until tweets fetched
-        self.analysis_button.config(state=tk.DISABLED, bg="#BDBDBD")
-        self.analysis_button.grid(row=0, column=1, padx=5)
+        self.fetch_analyze_button.grid(row=0, column=0, padx=5)
 
     def _set_entry_placeholder(self):
         # put placeholder text and set gray color
@@ -157,20 +149,23 @@ class SentimentAnalysisApp:
             self.chart_frames[window] = frame
 
     def append_output(self, output, tag=None):
+        """Append a timestamped message to the output text box and stdout.
+        Optional tkinter text tag may be provided for coloring.
         """
-        Fetches tweets and then immediately analyzes their sentiment, including
-        detailed, color-coded output.
-        Updated by Ryan on 11/6/2025
-        """
-        self.output_text.delete('1.0', tk.END) # Clear previous results in the text box.
-        
-        # Get and validate keyword
+        ts = datetime.datetime.now().strftime("%H:%M:%S")
         try:
-            keyword = self.keyword_entry.get().strip() # Get text and remove whitespace.
+            # prefix timestamp
+            self.output_text.insert(tk.END, f"[{ts}] ", "muted")
+            if tag:
+                self.output_text.insert(tk.END, output + "\n", tag)
+            else:
+                self.output_text.insert(tk.END, output + "\n")
+            self.output_text.see(tk.END)
         except Exception:
             # fall back to simple insert in case of tag issues
             self.output_text.insert(tk.END, output + "\n")
             self.output_text.see(tk.END)
+        # also print to stdout for logs
         print(output)
 
     # (Benjamin) Fetch tweets function
@@ -197,7 +192,7 @@ class SentimentAnalysisApp:
         except Exception as e:
             messagebox.showerror("Chart Error", f"Failed to update charts: {e}")
 
-    def open_fetch_tweets(self):
+    def open_fetch_tweets(self, do_analyze=False):
         """
         Fetch tweets based on the keyword entered by the user using fetch_tweets_for_ui.
         """
@@ -207,38 +202,48 @@ class SentimentAnalysisApp:
             return
 
         # disable UI during fetch
-        self.search_button.config(state=tk.DISABLED)
-        self.analysis_button.config(state=tk.DISABLED, bg="#BDBDBD")
+        try:
+            self.fetch_analyze_button.config(state=tk.DISABLED, bg="#BDBDBD")
+        except Exception:
+            pass
 
         self.append_output(f"🔍 Fetching tweets for: {kw} ...", "muted")
 
         try:
-            result = generate_sample_tweets(kw, count=6)  # Use sample tweets instead
+            # Try live fetch first; if it fails (credentials missing or API error), fall back to sample tweets
+            result = fetch_tweets_for_ui(kw, count=50)
+            if not result.get("success"):
+                # fallback when credentials missing or API error
+                self.append_output("Live fetch failed or credentials missing; falling back to sample tweets.", "muted")
+                result = generate_sample_tweets(kw, count=6)
 
-            if result.get("success"):
-                self.current_tweets = result.get("tweets", [])
+            if result and result.get("success"):
+                raw = result.get("tweets", [])
+                # normalize to plain text strings for analysis
+                normalized = []
+                for t in raw:
+                    if isinstance(t, dict):
+                        normalized.append(t.get('text') or t.get('full_text') or str(t))
+                    else:
+                        normalized.append(str(t))
+                self.current_tweets = normalized
                 self.current_keyword = kw
 
                 self.append_output(f"Successfully fetched {len(self.current_tweets)} tweets!", "muted")
                 self.output_text.insert(tk.END, "—" * 60 + "\n", "muted")
                 self.append_output("FETCHED TWEETS:", "title")
 
-                for i, tweet in enumerate(self.current_tweets, 1):
-                    # if tweet is a dict, try to extract text
-                    if isinstance(tweet, dict):
-                        text = tweet.get("text") or tweet.get("full_text") or str(tweet)
-                    else:
-                        text = str(tweet)
+                for i, text in enumerate(self.current_tweets, 1):
                     self.append_output(f"{i}. {text}")
 
                 self.output_text.insert(tk.END, "—" * 60 + "\n", "muted")
                 self.append_output("Tweets ready for analysis!", "muted")
 
-                # enable analyze button
-                self.analysis_button.config(state=tk.NORMAL, bg=BTN_BG)
-                
                 # Update charts with new data
                 self.update_charts()
+                # If caller requested analysis immediately after fetch, run it
+                if do_analyze:
+                    self.open_sentiment_analysis()
             else:
                 self.append_output(f"{result.get('message', 'Failed to fetch tweets')}", "neg")
                 self.current_tweets = []
@@ -246,7 +251,10 @@ class SentimentAnalysisApp:
             self.append_output(f"Error fetching tweets: {e}", "neg")
             self.current_tweets = []
         finally:
-            self.search_button.config(state=tk.NORMAL)
+            try:
+                self.fetch_analyze_button.config(state=tk.NORMAL, bg=BTN_BG)
+            except Exception:
+                pass
 
     # (Jania) Sentiment analysis function
     def open_sentiment_analysis(self):
@@ -259,7 +267,10 @@ class SentimentAnalysisApp:
 
         try:
             # disable button during analysis
-            self.analysis_button.config(state=tk.DISABLED, bg="#BDBDBD")
+            try:
+                self.fetch_analyze_button.config(state=tk.DISABLED, bg="#BDBDBD")
+            except Exception:
+                pass
             self.append_output(f"🎬 Analyzing sentiment for {len(self.current_tweets)} tweets about '{self.current_keyword}'...", "muted")
 
             # import analyze_tweets
@@ -273,14 +284,8 @@ class SentimentAnalysisApp:
                 self.append_output("📊 SENTIMENT ANALYSIS RESULTS", "title")
                 self.output_text.insert(tk.END, "—" * 60 + "\n", "muted")
 
-                # ask whether or notto show detailed results
-                if len(self.current_tweets) > 5:
-                    show_details = messagebox.askyesno(
-                        "Show Details",
-                        f"Analyzed {len(self.current_tweets)} tweets. Would you like to see detailed analysis for each tweet?\n\n(Click 'No' to see only the summary)"
-                    )
-                else:
-                    show_details = True
+                # Decide whether to show detailed results; avoid modal dialogs in this environment
+                show_details = True if len(self.current_tweets) <= 5 else False
 
                 if show_details and analysis_result.get("detailed_results"):
                     self.append_output("\n🔍 DETAILED ANALYSIS:", "title")
@@ -350,6 +355,9 @@ class SentimentAnalysisApp:
             messagebox.showerror("Analysis Error", f"Failed to analyze or display sentiment: {e}") # Show pop-up error.
             
         finally:
-            # 4. End: Re-enable button
-            self.combined_button.config(state=tk.NORMAL, bg=BTN_BG) # Re-enable button and restore color.
-            self.append_output("\n--- PROCESS COMPLETE ---", "title") # Log process completion.
+            # Re-enable combined button and restore color.
+            try:
+                self.fetch_analyze_button.config(state=tk.NORMAL, bg=BTN_BG)
+            except Exception:
+                pass
+            self.append_output("\n--- PROCESS COMPLETE ---", "title")
