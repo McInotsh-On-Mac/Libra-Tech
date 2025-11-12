@@ -35,7 +35,7 @@ pip install --upgrade pip
 echo "Installing dependencies..."
 pip install -r requirements.txt
 
-# Download NLTK data (required for sentiment analysis)
+# Download NLTK data 
 echo "Downloading NLTK data..."
 python3 -c "
 import nltk
@@ -53,17 +53,17 @@ if [ ! -f ".env" ]; then
     echo " Creating environment configuration file..."
     cat > .env << EOF
 # Twitter/X API Configuration
-TWITTER_BEARER_TOKEN=api_bearer_token_here
-TWITTER_API_KEY=api_key_here
-TWITTER_API_SECRET=api_secret_here
-TWITTER_ACCESS_TOKEN=api_access_token_here
-TWITTER_ACCESS_TOKEN_SECRET=api_access_token_secret_here
+BEARER_TOKEN=api_bearer_token_here
+API_KEY=api_key_here
+API_SECRET=api_secret_here
+ACCESS_TOKEN=api_access_token_here
+TOKEN_SECRET=api_access_token_secret_here
 
 # Database Configuration
-DB_HOST=localhost
-DB_NAME=your_db_name_here
-DB_USER=your_db_user_here
-DB_PASSWORD=your_db_password_here
+DB_NAME=postgres
+DB_USER=postgres.rrhyfcqtvbbkgzbeztcg
+DB_PASSWORD=LibraTech
+DB_HOST=aws-1-us-east-1.pooler.supabase.com
 DB_PORT=5432
 EOF
     echo "Please edit .env file with your API credentials"
@@ -88,9 +88,7 @@ echo ""
 echo " Installation completed successfully!"
 echo ""
 echo " Next steps:"
-echo "1. Edit the .env file with your Twitter/X API credentials"
-echo "2. Set up your PostgreSQL database"
-echo "3. Double-click 'LibraTech.command' on your desktop to launch the app"
+echo "1. Double-click 'LibraTech.command' on your desktop to launch the app"
 echo "   OR run: ./launcher.sh from this directory"
 echo ""
 echo " For more information, see README.md"

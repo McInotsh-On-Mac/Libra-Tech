@@ -1,82 +1,83 @@
-import tkinter as tk # Tkinter is used to build graphical user interfaces (GUIs) in Python.
-from tkinter import messagebox #Used to show popup messages (like alerts).
-import psycopg2 # Import the psycopg2 library to connect and interact with PostgreSQL databases.
-import os #Lets Python interact with the operating system (like reading files or paths).
-import bcrypt # Ssafely encrypts and checks passwords.
-from .sentiment_app import SentimentAnalysisApp #Allows the program to open that app after a successful login.
-from .db import get_db_connection # Import the function that connects to the database from another file in this project.
+# app/login_screen.py
+
+import tkinter as tk
+from tkinter import messagebox
+import psycopg2
+import os
+import bcrypt
+from .sentiment_app import SentimentAnalysisApp
+from .api_credentials_screen import APIConfigScreen  # New import
+from .db import get_db_connection
 
 # ---------------------- VISUAL DESIGN SETTINGS ----------------------
 
 # Define Brand Colors 
-BRAND_DARK_BLUE = "#1A237E"  # This dark blue color is used for primary text and buttons.
-BRAND_TEAL_ACCENT = "#008B8B"  # This teal/green color is used for accents.
-LIGHT_GRAY_BG = "#F0F0F0"  # This new light gray color is used for all backgrounds.
-WHITE_TEXT = "#FFFFFF"  # White text for better contrast on dark backgrounds.
+BRAND_DARK_BLUE = "#1A237E"
+BRAND_TEAL_ACCENT = "#008B8B"
+LIGHT_GRAY_BG = "#F0F0F0"
+WHITE_TEXT = "#FFFFFF"
 
-# (Ryan): (Login Page UI Redesign)
 class LoginScreen:
-    def __init__(self, master):  # This function runs when the Login window is created.
-        self.master = master # Save the window reference for use in other parts of the class.
-        self.master.title("LIBRA TECHNOLOGIES: Secure Login")  # Sets the title text at the top of the window.
-        self.master.geometry("1000x700")  # Increased the window size for better visibility.
-        self.master.configure(bg=LIGHT_GRAY_BG)  # Sets the entire window's background color to light gray.
+    def __init__(self, master):
+        self.master = master
+        self.master.title("LIBRA TECHNOLOGIES: Secure Login")
+        self.master.geometry("1000x700")
+        self.master.configure(bg=LIGHT_GRAY_BG)
 
-        # (Ryan): Center the login form in the middle of the page
+        # Center the login form in the middle of the page
         self.master.grid_rowconfigure(0, weight=1)
         self.master.grid_rowconfigure(2, weight=1)
         self.master.grid_columnconfigure(0, weight=1)
         self.master.grid_columnconfigure(2, weight=1)
 
-        # (Ryan): Create the main frame for the login form
+        # Create the main frame for the login form
         login_frame = tk.Frame(self.master, bg=LIGHT_GRAY_BG, padx=40, pady=40)
         login_frame.grid(row=1, column=1)
 
-        # (Ryan): Add a header with branding
+        # Add a header with branding
         tk.Label(login_frame, text="LIBRA TECHNOLOGIES", font=("Segoe UI", 24, "bold"), bg=LIGHT_GRAY_BG, fg=BRAND_DARK_BLUE).pack(pady=(20, 10))
         tk.Label(login_frame, text="Secure Login Portal", font=("Segoe UI", 16), bg=LIGHT_GRAY_BG, fg=BRAND_TEAL_ACCENT).pack(pady=(0, 30))
 
-        # (Ryan): Group input fields in a bordered frame
+        # Group input fields in a bordered frame
         input_frame = tk.LabelFrame(login_frame, text="Login Details", font=("Segoe UI", 14, "bold"), bg=LIGHT_GRAY_BG, fg=BRAND_DARK_BLUE, padx=20, pady=20)
         input_frame.pack(pady=(10, 30), padx=20, fill="both", expand=True)
 
-        # (Ryan): Add username input field
+        # Add username input field
         tk.Label(input_frame, text="Username:", font=("Segoe UI", 14), bg=LIGHT_GRAY_BG, fg=BRAND_DARK_BLUE).grid(row=0, column=0, sticky="w", pady=10)
         self.username_entry = tk.Entry(input_frame, font=("Segoe UI", 14), width=30, relief=tk.FLAT, bd=2)
         self.username_entry.grid(row=0, column=1, pady=10, padx=10)
 
-        # (Ryan): Add password input field
+        # Add password input field
         tk.Label(input_frame, text="Password:", font=("Segoe UI", 14), bg=LIGHT_GRAY_BG, fg=BRAND_DARK_BLUE).grid(row=1, column=0, sticky="w", pady=10)
-        self.password_entry = tk.Entry(input_frame, font=("Segoe UI", 14), show="*", relief=tk.FLAT, bd=2)  # Hides characters when typing a password
+        self.password_entry = tk.Entry(input_frame, font=("Segoe UI", 14), show="*", relief=tk.FLAT, bd=2)
         self.password_entry.grid(row=1, column=1, pady=10, padx=10)
 
-        # (Ryan): Add a message label for status updates
+        # Add a message label for status updates
         self.message_label = tk.Label(login_frame, text="", fg="red", bg=LIGHT_GRAY_BG, font=("Arial", 12))
         self.message_label.pack(pady=10)
 
-        # (Ryan): Add buttons in a separate frame
+        # Add buttons in a separate frame
         button_frame = tk.Frame(login_frame, bg=LIGHT_GRAY_BG)
         button_frame.pack(pady=(10, 10))
 
-        # (Ryan): Style the login button with a contrasting color
+        # Style the login button with a contrasting color
         self.login_button = tk.Button(button_frame, text="Login", command=self.validate_login, font=("Segoe UI", 14, "bold"),
                                       bg=BRAND_TEAL_ACCENT, fg="#1A237E", activebackground=WHITE_TEXT, padx=30, pady=10, relief=tk.FLAT)
         self.login_button.grid(row=0, column=0, padx=20)
 
-        # (Ryan): Style the sign-up button
+        # Style the sign-up button
         self.signup_button = tk.Button(button_frame, text="Sign Up", command=self.open_signup, font=("Segoe UI", 14, "bold"),
                                        bg="#CCCCCC", fg="#1A237E", activebackground=WHITE_TEXT, padx=30, pady=10, relief=tk.FLAT)
         self.signup_button.grid(row=0, column=1, padx=20)
 
     # ---------------------- LOGIN VALIDATION FUNCTION ----------------------
     
-    # (Sebastian): Add functionality for validating login credentials
     def validate_login(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
         if self.check_credentials(username, password):
             self.message_label.config(text="Login successful!", fg="green")
-            self.open_sentiment_analysis()
+            self.open_api_config()  # Changed: Now opens API config instead of sentiment analysis
         else:
             self.message_label.config(text="Invalid username or password", fg="red")
             self.username_entry.delete(0, tk.END)
@@ -84,7 +85,6 @@ class LoginScreen:
 
     # ---------------------- DATABASE CREDENTIAL CHECK FUNCTION ----------------------
     
-    # (Sebastian): Add functionality for checking credentials in the database
     def check_credentials(self, username, password):
         try:
             conn = get_db_connection()
@@ -102,7 +102,7 @@ class LoginScreen:
 
     # ---------------------- SIGN-UP WINDOW FUNCTION ----------------------    
     
-    def open_signup(self):  # This function handles opening the separate Sign Up window.
+    def open_signup(self):
         signup_window = tk.Toplevel(self.master)
         signup_window.title("Sign Up")
         signup_window.geometry("350x200")
@@ -156,10 +156,19 @@ class LoginScreen:
         signup_button = tk.Button(frame, text="Sign Up", command=save_credentials, font=("Arial", 12), bg="white", fg="black", padx=10, pady=5)
         signup_button.grid(row=2, columnspan=2, pady=10)
 
-# ---------------------- OPEN SENTIMENT ANALYSIS APP ----------------------
+    # ---------------------- OPEN API CONFIGURATION SCREEN ----------------------
+
+    def open_api_config(self):
+        """Open the API configuration screen after successful login"""
+        self.master.destroy()
+        root = tk.Tk()
+        app = APIConfigScreen(root, on_continue_callback=self.open_sentiment_analysis)
+        root.mainloop()
+
+    # ---------------------- OPEN SENTIMENT ANALYSIS APP ----------------------
 
     def open_sentiment_analysis(self):
-        self.master.destroy()
+        """Open the sentiment analysis app"""
         root = tk.Tk()
         app = SentimentAnalysisApp(root)
         root.mainloop()
