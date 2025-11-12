@@ -7,10 +7,11 @@ from nltk.corpus import wordnet
 from spellchecker import SpellChecker
 import os
 from datetime import datetime 
-from dotenv import load_dotenv
+from app.utils.env_loader import load_env
+load_env()
 
 # Load environment variables
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
+##load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
 # Initialize tools and vocab
 stop_words = set(stopwords.words('english'))
@@ -18,8 +19,22 @@ lemmatizer = WordNetLemmatizer()
 english_vocab = set(w.lower() for w in words.words())
 spell = SpellChecker()
 
-# Slang whitelist and shorthand map
-slang_whitelist = {"u", "dm", "rn", "pls", "idk", "lol", "brb", "gtg", "lmao", "omg", "tbh", "afaik", "imho"}
+# Slang whitelist and shorthand map (Benjamin Herron)
+slang_whitelist = {
+    # Base list
+    "u", "dm", "rn", "pls", "idk", "lol", "brb", "gtg", "lmao", "omg", "tbh",
+    "afaik", "imho", "atp", "wya", "fr", "afk", "smh", "fomo", "yolo", "iykyk",
+
+    # Extended list
+    "143", "2day", "4eae", "adn", "ama", "amho", "b2b", "b2c", "b4n", "bfn",
+    "f2f", "ftf", "f2p", "fubar", "fwb", "fyeo", "fyi", "fwiw", "glhf", "gm",
+    "gn", "grwm", "hak", "hand", "hth", "idc", "im", "imo", "iirc", "irl",
+    "iu2u", "iykwim", "jic", "jomo", "kfy", "kpc", "lmbo", "lmirl", "lsr",
+    "myob", "nifoc", "nmu", "oic", "ootd", "op", "ot", "p2p", "qotd", "rotfl",
+    "rt", "sm", "some", "tbd", "tbt", "tl;dr", "tt", "ttys", "ugt", "ugc",
+    "wcw", "wtp", "ymmv", "csm", "diftp", "fyeo", "ftf", "g2g", "lmirl"
+}
+
 shorthand_map = {
     "u": "you",
     "dm": "direct message",
@@ -33,10 +48,87 @@ shorthand_map = {
     "omg": "oh my god",
     "tbh": "to be honest",
     "afaik": "as far as i know",
-    "imho": "in my humble opinion"
+    "imho": "in my humble opinion",
+    "atp": "at this point",
+    "wya": "where you at",
+    "fr": "for real",
+    "afk": "away from keyboard",
+    "smh": "shaking my head",
+    "fomo": "fear of missing out",
+    "yolo": "you only live once",
+    "iykyk": "if you know you know",
+
+    # Extended mappings
+    "143": "i love you",
+    "2day": "today",
+    "4eae": "forever and ever",
+    "adn": "any day now",
+    "ama": "ask me anything",
+    "amho": "in my humble opinion",
+    "b2b": "business to business",
+    "b2c": "business to consumer",
+    "b4n": "bye for now",
+    "bfn": "bye for now",
+    "f2f": "face to face",
+    "ftf": "face to face",
+    "f2p": "free to play",
+    "fubar": "fouled up beyond all recognition",
+    "fwb": "friends with benefits",
+    "fyeo": "for your eyes only",
+    "fyi": "for your information",
+    "fwiw": "for what it's worth",
+    "glhf": "good luck have fun",
+    "gm": "good morning",
+    "gn": "good night",
+    "grwm": "get ready with me",
+    "hak": "hugs and kisses",
+    "hand": "have a nice day",
+    "hth": "hope this helps",
+    "idc": "i don't care",
+    "im": "instant message",
+    "imo": "in my opinion",
+    "iirc": "if i recall correctly",
+    "irl": "in real life",
+    "iu2u": "it's up to you",
+    "iykwim": "if you know what i mean",
+    "jic": "just in case",
+    "jomo": "joy of missing out",
+    "kfy": "kiss for you",
+    "kpc": "keep parents clueless",
+    "lmbo": "laughing my butt off",
+    "lmirl": "let's meet in real life",
+    "lsr": "loser",
+    "myob": "mind your own business",
+    "nifoc": "naked in front of computer",
+    "nmu": "not much, you?",
+    "oic": "oh, i see",
+    "ootd": "outfit of the day",
+    "op": "original poster",
+    "ot": "off topic",
+    "p2p": "peer to peer",
+    "qotd": "quote of the day",
+    "rotfl": "rolling on the floor laughing",
+    "rt": "retweet",
+    "sm": "social media",
+    "some": "shout out my ex",
+    "tbd": "to be determined",
+    "tbt": "throwback thursday",
+    "tl;dr": "too long; didn't read",
+    "tt": "talk to",
+    "ttys": "talk to you soon",
+    "ugt": "you got this",
+    "ugc": "user-generated content",
+    "wcw": "woman crush wednesday",
+    "wtp": "what’s the plan",
+    "ymmv": "your mileage may vary",
+    "csm": "commenting for better reach",
+    "diftp": "do it for the plot",
+    "g2g": "got to go"
 }
 
-#sentiment dictionary
+
+
+#sentiment dictionary (Benjamin Herron)
 sentiment_dict = {
     # Strong Positive Words
    "masterpiece": 5, "blockbuster": 5, "must-watch": 5, "award-worthy": 5, "oscar-worthy": 5, 

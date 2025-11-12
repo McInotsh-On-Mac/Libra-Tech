@@ -1,9 +1,9 @@
 import psycopg2
 import os
-from dotenv import load_dotenv
+from app.utils.env_loader import load_env
+load_env()
 
 
-load_dotenv()
 def get_db_connection():
     """
     Returns a new psycopg2 connection using environment variables.

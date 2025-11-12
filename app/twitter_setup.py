@@ -1,8 +1,7 @@
 # app/twitter_setup.py
 
 import tweepy
-import os
-from dotenv import load_dotenv
+from app.utils.env_loader import load_env
 
 # Load environment variables from .env file
 load_dotenv()
@@ -121,7 +120,6 @@ def test_authentication():
         # Test API v2
         me = current_client.get_me()
         print(f"API v2 Authentication successful! User ID: {me.data.id}")
-        
         return True
     except Exception as e:
         print(f"Authentication failed: {e}")
