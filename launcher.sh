@@ -1,5 +1,5 @@
 #!/bin/bash
-# filepath: /Users/jania/Libra-Tech/launcher.sh
+# Jania Southall: Created the launcher script for Libra-Tech Sentiment Analysis App
 
 echo "Starting Libra-Tech Sentiment Analysis App..."
 

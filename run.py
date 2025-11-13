@@ -7,7 +7,7 @@ import app.utils.env_loader
 from app.utils.env_loader import load_env
 load_env()  # Must be called before any Twitter or DB code that uses .env
 
-# Step 2: Import the rest of your app
+# Step 2: Import the rest of the application
 import tkinter as tk
 from app.login_screen import LoginScreen
 

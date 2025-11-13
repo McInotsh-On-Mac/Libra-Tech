@@ -1,5 +1,6 @@
+# Jania Southall: Created the installation script for Libra-Tech Sentiment Analysis App
 #!/bin/bash
-# filepath: /Users/jania/Libra-Tech/install.sh
+# Libra-Tech Installation Script
 
 echo "Installing Libra-Tech Sentiment Analysis App..."
 echo "=================================================="
@@ -57,7 +58,7 @@ BEARER_TOKEN=api_bearer_token_here
 API_KEY=api_key_here
 API_SECRET=api_secret_here
 ACCESS_TOKEN=api_access_token_here
-TOKEN_SECRET=api_access_token_secret_here
+ACCESS_SECRET=api_access_token_secret_here
 
 # Database Configuration
 DB_NAME=postgres

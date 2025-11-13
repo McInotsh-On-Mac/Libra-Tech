@@ -36,7 +36,7 @@ pip install -r requirements.txt
 
 REM Download NLTK data (required for sentiment analysis)
 echo Downloading NLTK data...
-python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('vader_lexicon', quiet=True); nltk.download('stopwords', quiet=True); print('✅ NLTK data downloaded successfully')"
+python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('vader_lexicon', quiet=True); nltk.download('stopwords', quiet=True); print('NLTK data downloaded successfully')"
 
 REM Check if NLTK download was successful
 if errorlevel 1 (
@@ -47,22 +47,19 @@ REM Create .env file if it doesn't exist
 if not exist .env (
    echo Creating environment configuration file...
    (
-       echo # Twitter/X API Configuration
-       echo TWITTER_BEARER_TOKEN=your_bearer_token_here
-       echo TWITTER_API_KEY=your_api_key_here
-       echo TWITTER_API_SECRET=your_api_secret_here
-       echo TWITTER_ACCESS_TOKEN=your_access_token_here
-       echo TWITTER_ACCESS_TOKEN_SECRET=your_access_token_secret_here
-       echo.
-       echo # Database Configuration
-       echo DB_HOST=localhost
-       echo DB_NAME=libra_tech
-       echo DB_USER=your_db_user_here
-       echo DB_PASSWORD=your_db_password_here
-       echo DB_PORT=5432
+    echo BEARER_TOKEN=api_bearer_token_here
+    echo API_KEY=api_key_here
+    echo API_SECRET=api_secret_here
+    echo ACCESS_TOKEN=api_access_token_here
+    echo ACCESS_SECRET=api_access_token_secret_here
+    echo # Database Configuration
+    echo DB_NAME=postgres
+    echo DB_USER=postgres.rrhyfcqtvbbkgzbeztcg
+    echo DB_PASSWORD=LibraTech
+    echo DB_HOST=aws-1-us-east-1.pooler.supabase.com
+    echo DB_PORT=5432
    ) > .env
-   echo ✅ Environment configuration file created
-   echo Please edit .env file with your API credentials
+   echo Environment configuration file created
 ) else (
    echo Environment file already exists
 )
@@ -93,7 +90,7 @@ if errorlevel 1 (
     del temp_shortcut.vbs
     
     if exist "%USERPROFILE%\Desktop\LibraTech.lnk" (
-        echo ✅ Desktop shortcut created successfully using VBScript
+        echo Desktop shortcut created successfully using VBScript
     ) else (
         echo ⚠ Could not create desktop shortcut. You can manually create one by:
         echo    1. Right-click on desktop
@@ -102,10 +99,10 @@ if errorlevel 1 (
         echo    4. Set working directory to: %CD%
     )
 ) else (
-    echo ✅ Desktop shortcut created successfully using PowerShell
+    echo Desktop shortcut created successfully using PowerShell
 )
 
-REM Create Start Menu shortcut (optional)
+REM Create Start Menu shortcut
 echo Creating Start Menu shortcut...
 if not exist "%APPDATA%\Microsoft\Windows\Start Menu\Programs\LibraTech" mkdir "%APPDATA%\Microsoft\Windows\Start Menu\Programs\LibraTech"
 
@@ -120,25 +117,23 @@ cscript //nologo temp_startmenu.vbs
 del temp_startmenu.vbs
 
 if exist "%APPDATA%\Microsoft\Windows\Start Menu\Programs\LibraTech\LibraTech Sentiment Analysis.lnk" (
-    echo ✅ Start Menu shortcut created successfully
+    echo Start Menu shortcut created successfully
 ) else (
     echo ⚠ Could not create Start Menu shortcut
 )
 
 echo.
 echo ==========================================
-echo ✅ Installation completed successfully!
+echo  Installation completed successfully!
 echo ==========================================
 echo.
-echo 📋 Next steps:
-echo 1. Edit the .env file with your Twitter/X API credentials
-echo 2. Set up your PostgreSQL database
-echo 3. Launch the app by:
+echo Next steps:
+echo 1. Launch the app by:
 echo    • Double-clicking the LibraTech shortcut on your desktop
 echo    • Double-clicking LibraTech.bat in this folder
 echo    • Searching for "LibraTech" in your Start Menu
 echo.
-echo 📖 For more information, see README.md
+echo For more information, see README.md
 echo.
 pause
 

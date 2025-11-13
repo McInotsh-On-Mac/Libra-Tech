@@ -1,10 +1,10 @@
 # app/twitter_setup.py
-
+import os
 import tweepy
 from app.utils.env_loader import load_env
 
 # Load environment variables from .env file
-load_dotenv()
+load_env()
 
 # Global client variable
 client = None
@@ -64,7 +64,7 @@ def get_client():
     
     if client is None:
         # Reload environment variables in case they were just saved
-        load_dotenv(override=True)
+        load_env(override=True)
         if not initialize_twitter_client():
             return None
     
@@ -79,7 +79,7 @@ def get_api():
     
     if api is None:
         # Reload environment variables in case they were just saved
-        load_dotenv(override=True)
+        load_env(override=True)
         if not initialize_twitter_client():
             return None
     

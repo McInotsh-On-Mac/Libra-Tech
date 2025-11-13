@@ -6,9 +6,9 @@ import platform
 def check_python_version():
     """Check if Python version is compatible."""
     if sys.version_info < (3, 7):
-        print("❌ Python 3.7 or higher is required.")
+        print("Python 3.7 or higher is required.")
         return False
-    print(f"✅ Python {sys.version.split()[0]} detected")
+    print(f"Python {sys.version.split()[0]} detected")
     return True
 
 def create_batch_launcher():
@@ -33,7 +33,7 @@ if errorlevel 1 (
     pause
 )
 """)
-        print("✅ Created LibraTech.bat launcher for Windows")
+        print("Created LibraTech.bat launcher for Windows")
         
     elif system == "Darwin":  # macOS
         # Create macOS app bundle structure
@@ -67,7 +67,7 @@ cd "{os.getcwd()}"
 """)
         
         os.chmod(f"{app_dir}/LibraTech", 0o755)
-        print("✅ Created LibraTech.app for macOS")
+        print("Created LibraTech.app for macOS")
         
         # Create desktop command file
         desktop_command = os.path.expanduser("~/Desktop/LibraTech.command")
@@ -77,7 +77,7 @@ cd "{os.getcwd()}"
 ./launcher.sh
 """)
         os.chmod(desktop_command, 0o755)
-        print("✅ Created LibraTech.command on desktop")
+        print("Created LibraTech.command on desktop")
         
     else:  # Linux
         # Create desktop entry
@@ -94,7 +94,7 @@ Terminal=true
 Categories=Application;
 """)
         os.chmod(desktop_file, 0o755)
-        print("✅ Created desktop entry for Linux")
+        print("Created desktop entry for Linux")
 
 def create_shortcuts_folder():
     """Create organized shortcuts folder with instructions."""
@@ -146,7 +146,7 @@ Categories=Application;
 
 def main():
     """Main setup function."""
-    print("🔧 Setting up Libra-Tech for easy launching...")
+    print("Setting up Libra-Tech for easy launching...")
     
     if not check_python_version():
         return False
@@ -154,8 +154,8 @@ def main():
     create_batch_launcher()
     create_shortcuts_folder()
     
-    print("\n🎉 Setup completed!")
-    print("\n📋 You can now launch the app by:")
+    print("\nSetup completed!")
+    print("\nYou can now launch the app by:")
     
     system = platform.system()
     if system == "Windows":

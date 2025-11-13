@@ -4,6 +4,7 @@ tweepy>=4.14.0
 
 # Plotting and visualization
 matplotlib>=3.6.0
+pandas
 
 # NLP and Sentiment Analysis
 nltk>=3.8.0

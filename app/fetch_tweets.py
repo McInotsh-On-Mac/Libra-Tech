@@ -1,7 +1,5 @@
 # app/fetch_tweets.py
 
-# app/fetch_tweets.py
-
 import os
 import tweepy
 import sys

@@ -46,11 +46,11 @@ def create_windows_shortcut():
         return True
         
     except ImportError:
-        print("⚠️  Windows shortcut creation requires 'pywin32' and 'winshell' packages.")
+        print("Windows shortcut creation requires 'pywin32' and 'winshell' packages.")
         print("Install with: pip install pywin32 winshell")
         return False
     except Exception as e:
-        print(f"❌ Error creating Windows shortcut: {e}")
+        print(f"Error creating Windows shortcut: {e}")
         return False
 
 def create_macos_shortcut():
@@ -70,12 +70,12 @@ cd "{project_root}"
         # Make executable
         os.chmod(desktop_path, 0o755)
         
-        print("✅ macOS desktop shortcut created successfully!")
-        print(f"📁 Shortcut location: {desktop_path}")
+        print("macOS desktop shortcut created successfully!")
+        print(f"Shortcut location: {desktop_path}")
         return True
         
     except Exception as e:
-        print(f"❌ Error creating macOS shortcut: {e}")
+        print(f"Error creating macOS shortcut: {e}")
         return False
 
 def create_linux_shortcut():
@@ -120,7 +120,7 @@ StartupNotify=true
         return True
         
     except Exception as e:
-        print(f"❌ Error creating Linux shortcut: {e}")
+        print(f"Error creating Linux shortcut: {e}")
         return False
 
 def check_prerequisites():
@@ -137,7 +137,7 @@ def check_prerequisites():
             missing_files.append(f"{name} ({path})")
     
     if missing_files:
-        print("❌ Missing required files:")
+        print("Missing required files:")
         for file in missing_files:
             print(f"   • {file}")
         print("\nPlease run the installation script first:")
@@ -171,7 +171,7 @@ def create_icon_if_missing():
         
         icon_path = icons_dir / "icon.png"
         img.save(icon_path)
-        print(f"✅ Created simple icon: {icon_path}")
+        print(f"Created simple icon: {icon_path}")
         
     except ImportError:
         # Create placeholder icon info
@@ -204,28 +204,28 @@ def main():
     system = platform.system()
     
     if system == "Windows":
-        print("🪟 Detected Windows - Creating desktop shortcut...")
+        print("Detected Windows - Creating desktop shortcut...")
         success = create_windows_shortcut()
     elif system == "Darwin":
-        print("🍎 Detected macOS - Creating desktop shortcut...")
+        print("Detected macOS - Creating desktop shortcut...")
         success = create_macos_shortcut()
     elif system == "Linux":
-        print("🐧 Detected Linux - Creating desktop shortcut...")
+        print("Detected Linux - Creating desktop shortcut...")
         success = create_linux_shortcut()
     else:
-        print(f"❌ Unsupported platform: {system}")
+        print(f"Unsupported platform: {system}")
         return False
     
     if success:
-        print("\n🎉 Shortcut creation completed!")
-        print("\n📋 You can now:")
+        print("\nShortcut creation completed!")
+        print("\nYou can now:")
         print("   • Double-click the desktop shortcut to launch LibraTech")
         print("   • Or run the launcher script directly from the project folder")
         
         if system == "Linux":
             print("   • Find LibraTech in your application menu")
     else:
-        print("\n❌ Shortcut creation failed.")
+        print("\nShortcut creation failed.")
         print("You can still launch the app using:")
         if system == "Windows":
             print("   • Double-click LibraTech.bat in the project folder")
@@ -252,16 +252,16 @@ def interactive_mode():
             main()
         elif choice == "2":
             if check_prerequisites():
-                print("✅ All prerequisites are met!")
+                print("All prerequisites are met!")
             else:
-                print("❌ Some prerequisites are missing.")
+                print("Some prerequisites are missing.")
         elif choice == "3":
             create_icon_if_missing()
         elif choice == "4":
-            print("👋 Goodbye!")
+            print("Goodbye!")
             break
         else:
-            print("❌ Invalid choice. Please enter 1, 2, 3, or 4.")
+            print("Invalid choice. Please enter 1, 2, 3, or 4.")
 
 if __name__ == "__main__":
     # Check if running in interactive mode
