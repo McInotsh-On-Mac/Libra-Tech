@@ -231,11 +231,11 @@ class SentimentAnalysisApp:
             elif tag == 'title':
                 self.output_text.insert(tk.END, f"🔹 {output}\n", tag)  # Add a blue bullet for titles
             elif tag == 'pos':
-                self.output_text.insert(tk.END, f"✅ {output}\n", tag)  # Add a green checkmark for positive
+                self.output_text.insert(tk.END, f"{output}\n", tag)  # Add a green checkmark for positive
             elif tag == 'neg':
-                self.output_text.insert(tk.END, f"❌ {output}\n", tag)  # Add a red cross for negative
+                self.output_text.insert(tk.END, f"{output}\n", tag)  # Add a red cross for negative
             elif tag == 'neutral':
-                self.output_text.insert(tk.END, f"⚪ {output}\n", tag)  # Add a white circle for neutral
+                self.output_text.insert(tk.END, f"{output}\n", tag)  # Add a white circle for neutral
             else:
                 self.output_text.insert(tk.END, output + "\n", tag)  # Default behavior
 
@@ -353,6 +353,7 @@ class SentimentAnalysisApp:
         except Exception:
             return '24h'
 
+    # Elali McNair
     def save_current_chart(self):
         """Download the currently selected chart to the Downloads folder."""
         if not getattr(self, 'last_charts', None):
@@ -399,7 +400,8 @@ class SentimentAnalysisApp:
             error_detail = traceback.format_exc()
             print(f"Error downloading chart:\n{error_detail}")
             messagebox.showerror("Download Error", f"Failed to download chart:\n{str(e)}")
-
+    
+    # Elali McNair
     def save_all_charts(self):
         """Download all generated charts to the Downloads folder as PNG files."""
         if not getattr(self, 'chart_canvases', None) or not self.chart_canvases:
@@ -463,7 +465,8 @@ class SentimentAnalysisApp:
             error_detail = traceback.format_exc()
             print(f"Error downloading charts:\n{error_detail}")
             messagebox.showerror("Error", f"Unexpected error while downloading charts:\n{str(e)}")
-
+    
+    # Elali McNair
     def download_chart_data(self):
         """Download raw chart data as CSV files to the Downloads folder."""
         try:
