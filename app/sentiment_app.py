@@ -368,6 +368,7 @@ class SentimentAnalysisApp:
             return
 
         try:
+            import gc
             from PIL import ImageGrab
             
             # Get Downloads folder path
@@ -387,10 +388,16 @@ class SentimentAnalysisApp:
             width = widget.winfo_width()
             height = widget.winfo_height()
             
-            # Capture the widget area
-            img = ImageGrab.grab(bbox=(x, y, x + width, y + height))
-            img.save(path, 'PNG')
-            img.close()  # Explicitly close the image
+            img = None
+            try:
+                # Capture the widget area
+                img = ImageGrab.grab(bbox=(x, y, x + width, y + height))
+                img.save(path, 'PNG')
+            finally:
+                # Always close the image and force garbage collection
+                if img:
+                    img.close()
+                gc.collect()
             
             # Defer the success message to avoid GUI conflicts
             self.master.after(100, lambda: messagebox.showinfo("Downloaded", f"Chart downloaded to:\n{path}"))
@@ -399,7 +406,7 @@ class SentimentAnalysisApp:
             import traceback
             error_detail = traceback.format_exc()
             print(f"Error downloading chart:\n{error_detail}")
-            messagebox.showerror("Download Error", f"Failed to download chart:\n{str(e)}")
+            self.master.after(100, lambda e=e: messagebox.showerror("Download Error", f"Failed to download chart:\n{str(e)}"))
     
     # Elali McNair
     def save_all_charts(self):
@@ -408,63 +415,81 @@ class SentimentAnalysisApp:
             messagebox.showwarning("No Charts", "No charts available to download. Please generate charts first by clicking 'Fetch & Analyze'.")
             return
 
+        # Start the download process with a queue
+        downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
+        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        self._download_queue = list(self.chart_canvases.items())
+        self._download_results = {'saved': 0, 'failures': [], 'folder': downloads_folder, 'timestamp': timestamp}
+        
+        # Start downloading the first chart
+        self._download_next_chart()
+    
+    def _download_next_chart(self):
+        """Helper function to download charts one at a time with delays."""
+        if not self._download_queue:
+            # All done, show results
+            self._show_download_results()
+            return
+        
+        key, canvas = self._download_queue.pop(0)
+        
         try:
+            import gc
             from PIL import ImageGrab
             
-            # Get Downloads folder path
-            downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
+            filename = f"sentiment_{key}_{self._download_results['timestamp']}.png"
+            path = os.path.join(self._download_results['folder'], filename)
             
-            failures = []
-            timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-            saved_count = 0
+            # Get the canvas widget
+            widget = canvas.get_tk_widget()
             
-            for key, canvas in self.chart_canvases.items():
-                try:
-                    filename = f"sentiment_{key}_{timestamp}.png"
-                    path = os.path.join(downloads_folder, filename)
-                    
-                    # Get the canvas widget
-                    widget = canvas.get_tk_widget()
-                    
-                    # Switch to the tab to make it visible for capture
-                    for i, frame_key in enumerate(self.chart_frames.keys()):
-                        if frame_key == key:
-                            self.charts_notebook.select(i)
-                            break
-                    
-                    # Force update to ensure widget is fully rendered
-                    widget.update()
-                    self.master.update()
-                    
-                    # Get widget position and size
-                    x = widget.winfo_rootx()
-                    y = widget.winfo_rooty()
-                    width = widget.winfo_width()
-                    height = widget.winfo_height()
-                    
-                    # Capture the widget area
-                    img = ImageGrab.grab(bbox=(x, y, x + width, y + height))
-                    img.save(path, 'PNG')
-                    img.close()  # Explicitly close the image
-                    
-                    saved_count += 1
-                    print(f"Downloaded: {path}")
-                except Exception as e:
-                    print(f"Failed to download {key}: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    failures.append((key, str(e)))
-
-            if failures:
-                msg = f"Downloaded {saved_count} chart(s) to Downloads folder.\nFailed: {', '.join([f[0] for f in failures])}"
-                self.master.after(100, lambda: messagebox.showwarning("Partial Success", msg))
-            else:
-                self.master.after(100, lambda: messagebox.showinfo("Downloaded", f"All {saved_count} charts downloaded successfully to:\n{downloads_folder}"))
+            # Switch to the tab to make it visible for capture
+            for i, frame_key in enumerate(self.chart_frames.keys()):
+                if frame_key == key:
+                    self.charts_notebook.select(i)
+                    break
+            
+            # Force update to ensure widget is fully rendered
+            widget.update()
+            self.master.update()
+            
+            # Get widget position and size
+            x = widget.winfo_rootx()
+            y = widget.winfo_rooty()
+            width = widget.winfo_width()
+            height = widget.winfo_height()
+            
+            img = None
+            try:
+                # Capture the widget area
+                img = ImageGrab.grab(bbox=(x, y, x + width, y + height))
+                img.save(path, 'PNG')
+            finally:
+                # Always close the image and force garbage collection
+                if img:
+                    img.close()
+                gc.collect()
+            
+            self._download_results['saved'] += 1
+            print(f"Downloaded: {path}")
         except Exception as e:
+            print(f"Failed to download {key}: {e}")
             import traceback
-            error_detail = traceback.format_exc()
-            print(f"Error downloading charts:\n{error_detail}")
-            messagebox.showerror("Error", f"Unexpected error while downloading charts:\n{str(e)}")
+            traceback.print_exc()
+            self._download_results['failures'].append((key, str(e)))
+        
+        # Schedule next download after a delay to avoid overwhelming the GUI
+        self.master.after(300, self._download_next_chart)
+    
+    def _show_download_results(self):
+        """Show the final results of downloading all charts."""
+        results = self._download_results
+        if results['failures']:
+            msg = f"Downloaded {results['saved']} chart(s) to Downloads folder.\nFailed: {', '.join([f[0] for f in results['failures']])}"
+            messagebox.showwarning("Partial Success", msg)
+        else:
+            messagebox.showinfo("Downloaded", f"All {results['saved']} charts downloaded successfully to:\n{results['folder']}")
     
     # Elali McNair
     def download_chart_data(self):
