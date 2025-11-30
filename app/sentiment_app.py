@@ -169,8 +169,7 @@ class SentimentAnalysisApp:
             padx=30,
             pady=15,
             relief=tk.RAISED,
-            bd=3,
-            cursor="hand2"
+            bd=3
         )
         self.save_current_btn.pack(side=tk.LEFT, padx=10, expand=True, fill=tk.X)
 
@@ -187,8 +186,7 @@ class SentimentAnalysisApp:
             padx=30,
             pady=15,
             relief=tk.RAISED,
-            bd=3,
-            cursor="hand2"
+            bd=3
         )
         self.save_all_btn.pack(side=tk.LEFT, padx=10, expand=True, fill=tk.X)
 
@@ -205,8 +203,7 @@ class SentimentAnalysisApp:
             padx=30,
             pady=15,
             relief=tk.RAISED,
-            bd=3,
-            cursor="hand2"
+            bd=3
         )
         self.download_data_btn.pack(side=tk.LEFT, padx=10, expand=True, fill=tk.X)
         
