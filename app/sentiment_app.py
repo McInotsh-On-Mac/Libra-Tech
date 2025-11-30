@@ -425,6 +425,7 @@ class SentimentAnalysisApp:
         # Start downloading the first chart
         self._download_next_chart()
     
+    # Elali McNair
     def _download_next_chart(self):
         """Helper function to download charts one at a time with delays."""
         if not self._download_queue:
@@ -482,6 +483,7 @@ class SentimentAnalysisApp:
         # Schedule next download after a delay to avoid overwhelming the GUI
         self.master.after(300, self._download_next_chart)
     
+    # Elali McNair
     def _show_download_results(self):
         """Show the final results of downloading all charts."""
         results = self._download_results
