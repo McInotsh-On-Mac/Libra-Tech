@@ -4,6 +4,7 @@ tweepy
 
 # Plotting and visualization
 matplotlib
+Pillow
 
 # NLP and Sentiment Analysis
 nltk

@@ -1,8 +1,9 @@
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox, ttk, filedialog
 from tkinter.ttk import Notebook
 import datetime  # for timestamps
 import requests  # for api calls
+import os
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
@@ -59,6 +60,9 @@ class SentimentAnalysisApp:
         
         # Initialize charts tab
         self.init_charts_tab()
+
+        # store last generated charts (window -> matplotlib.Figure)
+        self.last_charts = {}
 
     def init_analysis_tab(self):
         # Main frame for the Analysis tab
@@ -144,11 +148,69 @@ class SentimentAnalysisApp:
             self._set_entry_placeholder()
 
     def init_charts_tab(self):
-        # Create frame for charts
+        # Create main container for charts tab
         self.charts_frame = tk.Frame(self.charts_tab, bg=LIGHT_GRAY_BG)
         self.charts_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
         
-        # Create notebook for different time windows
+        # Create button container FIRST at the bottom
+        btn_container = tk.Frame(self.charts_frame, bg=LIGHT_GRAY_BG)
+        btn_container.pack(side=tk.BOTTOM, fill=tk.X, pady=(10, 0))
+
+        # Save Current Chart button
+        self.save_current_btn = tk.Button(
+            btn_container,
+            text="Download Current Chart",
+            command=self.save_current_chart,
+            font=("Arial", 14, "bold"),
+            bg=BTN_BG,
+            fg=BTN_FG,
+            activebackground=BTN_BG_ACTIVE,
+            activeforeground=BTN_FG,
+            padx=30,
+            pady=15,
+            relief=tk.RAISED,
+            bd=3,
+            cursor="hand2"
+        )
+        self.save_current_btn.pack(side=tk.LEFT, padx=10, expand=True, fill=tk.X)
+
+        # Save All Charts button
+        self.save_all_btn = tk.Button(
+            btn_container,
+            text="Download All Charts",
+            command=self.save_all_charts,
+            font=("Arial", 14, "bold"),
+            bg=BTN_BG,
+            fg=BTN_FG,
+            activebackground=BTN_BG_ACTIVE,
+            activeforeground=BTN_FG,
+            padx=30,
+            pady=15,
+            relief=tk.RAISED,
+            bd=3,
+            cursor="hand2"
+        )
+        self.save_all_btn.pack(side=tk.LEFT, padx=10, expand=True, fill=tk.X)
+
+        # Download Data button
+        self.download_data_btn = tk.Button(
+            btn_container,
+            text="Download Chart Data (CSV)",
+            command=self.download_chart_data,
+            font=("Arial", 14, "bold"),
+            bg=BTN_BG,
+            fg=BTN_FG,
+            activebackground=BTN_BG_ACTIVE,
+            activeforeground=BTN_FG,
+            padx=30,
+            pady=15,
+            relief=tk.RAISED,
+            bd=3,
+            cursor="hand2"
+        )
+        self.download_data_btn.pack(side=tk.LEFT, padx=10, expand=True, fill=tk.X)
+        
+        # Create notebook for different time windows AFTER buttons
         self.charts_notebook = ttk.Notebook(self.charts_frame)
         self.charts_notebook.pack(expand=True, fill=tk.BOTH)
         
@@ -201,12 +263,17 @@ class SentimentAnalysisApp:
             
             # Create new charts
             charts = create_sentiment_charts()
+            # Store charts and canvases for saving
+            self.last_charts = charts
+            self.chart_canvases = {}
             
             # Add charts to their respective frames
             for window, chart in charts.items():
                 canvas = FigureCanvasTkAgg(chart, master=self.chart_frames[window])
                 canvas.draw()
                 canvas.get_tk_widget().pack(expand=True, fill=tk.BOTH)
+                # Store canvas reference
+                self.chart_canvases[window] = canvas
                 
             self.notebook.select(self.charts_tab)  # Switch to charts tab
             
@@ -276,6 +343,169 @@ class SentimentAnalysisApp:
                 self.fetch_analyze_button.config(state=tk.NORMAL, bg=BTN_BG)
             except Exception:
                 pass
+
+    def _get_selected_window_key(self):
+        """Return the window key (e.g., '24h') for the currently selected charts tab."""
+        try:
+            tab_id = self.charts_notebook.select()
+            tab_text = self.charts_notebook.tab(tab_id, "text")
+            # tab_text is like 'Last 24h'
+            if tab_text.lower().startswith('last'):
+                return tab_text.split()[-1]
+            return tab_text
+        except Exception:
+            return '24h'
+
+    def save_current_chart(self):
+        """Download the currently selected chart to the Downloads folder."""
+        if not getattr(self, 'last_charts', None):
+            messagebox.showwarning("No Chart", "No chart available to download. Generate charts first.")
+            return
+
+        key = self._get_selected_window_key()
+        canvas = getattr(self, 'chart_canvases', {}).get(key)
+        
+        if canvas is None:
+            messagebox.showwarning("No Chart", f"No chart available for the selected tab ({key}).")
+            return
+
+        try:
+            from PIL import ImageGrab
+            
+            # Get Downloads folder path
+            downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
+            filename = f"sentiment_{key}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+            path = os.path.join(downloads_folder, filename)
+            
+            # Get the canvas widget
+            widget = canvas.get_tk_widget()
+            
+            # Force update to ensure widget is fully rendered
+            widget.update()
+            
+            # Get widget position and size
+            x = widget.winfo_rootx()
+            y = widget.winfo_rooty()
+            width = widget.winfo_width()
+            height = widget.winfo_height()
+            
+            # Capture the widget area
+            img = ImageGrab.grab(bbox=(x, y, x + width, y + height))
+            img.save(path, 'PNG')
+            img.close()  # Explicitly close the image
+            
+            # Defer the success message to avoid GUI conflicts
+            self.master.after(100, lambda: messagebox.showinfo("Downloaded", f"Chart downloaded to:\n{path}"))
+            print(f"Downloaded: {path}")
+        except Exception as e:
+            import traceback
+            error_detail = traceback.format_exc()
+            print(f"Error downloading chart:\n{error_detail}")
+            messagebox.showerror("Download Error", f"Failed to download chart:\n{str(e)}")
+
+    def save_all_charts(self):
+        """Download all generated charts to the Downloads folder as PNG files."""
+        if not getattr(self, 'chart_canvases', None) or not self.chart_canvases:
+            messagebox.showwarning("No Charts", "No charts available to download. Please generate charts first by clicking 'Fetch & Analyze'.")
+            return
+
+        try:
+            from PIL import ImageGrab
+            
+            # Get Downloads folder path
+            downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
+            
+            failures = []
+            timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+            saved_count = 0
+            
+            for key, canvas in self.chart_canvases.items():
+                try:
+                    filename = f"sentiment_{key}_{timestamp}.png"
+                    path = os.path.join(downloads_folder, filename)
+                    
+                    # Get the canvas widget
+                    widget = canvas.get_tk_widget()
+                    
+                    # Switch to the tab to make it visible for capture
+                    for i, frame_key in enumerate(self.chart_frames.keys()):
+                        if frame_key == key:
+                            self.charts_notebook.select(i)
+                            break
+                    
+                    # Force update to ensure widget is fully rendered
+                    widget.update()
+                    self.master.update()
+                    
+                    # Get widget position and size
+                    x = widget.winfo_rootx()
+                    y = widget.winfo_rooty()
+                    width = widget.winfo_width()
+                    height = widget.winfo_height()
+                    
+                    # Capture the widget area
+                    img = ImageGrab.grab(bbox=(x, y, x + width, y + height))
+                    img.save(path, 'PNG')
+                    img.close()  # Explicitly close the image
+                    
+                    saved_count += 1
+                    print(f"Downloaded: {path}")
+                except Exception as e:
+                    print(f"Failed to download {key}: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    failures.append((key, str(e)))
+
+            if failures:
+                msg = f"Downloaded {saved_count} chart(s) to Downloads folder.\nFailed: {', '.join([f[0] for f in failures])}"
+                self.master.after(100, lambda: messagebox.showwarning("Partial Success", msg))
+            else:
+                self.master.after(100, lambda: messagebox.showinfo("Downloaded", f"All {saved_count} charts downloaded successfully to:\n{downloads_folder}"))
+        except Exception as e:
+            import traceback
+            error_detail = traceback.format_exc()
+            print(f"Error downloading charts:\n{error_detail}")
+            messagebox.showerror("Error", f"Unexpected error while downloading charts:\n{str(e)}")
+
+    def download_chart_data(self):
+        """Download raw chart data as CSV files to the Downloads folder."""
+        try:
+            import csv
+            from .chart_sentiment import fetch_sentiment_data_from_db
+            
+            # Fetch the data from database
+            data = fetch_sentiment_data_from_db(60)
+            
+            if data.empty:
+                messagebox.showwarning("No Data", "No sentiment data available to download. Please fetch and analyze tweets first.")
+                return
+            
+            # Get Downloads folder path
+            downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
+            timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"sentiment_data_{timestamp}.csv"
+            path = os.path.join(downloads_folder, filename)
+            
+            # Calculate net sentiment for the export
+            data['net_sentiment'] = data['positive_count'] - data['negative_count']
+            
+            # Select and order columns for export
+            export_columns = ['timestamp', 'sentiment', 'tweet_count', 'positive_count', 
+                            'negative_count', 'neutral_count', 'net_sentiment']
+            export_data = data[export_columns]
+            
+            # Write to CSV
+            export_data.to_csv(path, index=False)
+            
+            # Defer the success message to avoid GUI conflicts
+            self.master.after(100, lambda: messagebox.showinfo("Downloaded", f"Chart data downloaded to:\n{path}\n\nRows: {len(export_data)}"))
+            print(f"Downloaded data: {path} ({len(export_data)} rows)")
+            
+        except Exception as e:
+            import traceback
+            error_detail = traceback.format_exc()
+            print(f"Error downloading chart data:\n{error_detail}")
+            messagebox.showerror("Download Error", f"Failed to download chart data:\n{str(e)}")
 
     # (Jania) Sentiment analysis function
     def open_sentiment_analysis(self):
