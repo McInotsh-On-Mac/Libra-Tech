@@ -537,47 +537,105 @@ class SentimentAnalysisApp:
     # (Jania) Sentiment analysis function
     def open_sentiment_analysis(self):
         """
-        Analyze the currently fetched tweets and provide a comprehensive summary.
+        Analyze the currently fetched tweets using analyze_tweets.
         """
         if not self.current_tweets:
-            self.append_output("No tweets to analyze. Please fetch tweets first.", "neg")
+            messagebox.showwarning("No Tweets", "Please fetch tweets first before analyzing sentiment.")
             return
 
-        self.append_output("Starting comprehensive sentiment analysis...", "title")
-        self.append_output("", "separator")
+        try:
+            # disable button during analysis
+            try:
+                self.fetch_analyze_button.config(state=tk.DISABLED, bg="#BDBDBD")
+            except Exception:
+                pass
+            self.append_output(f"Analyzing sentiment for {len(self.current_tweets)} tweets about '{self.current_keyword}'...", "muted")
 
-        # Initialize counters
-        total_score = 0
-        positive_count = 0
-        negative_count = 0
-        neutral_count = 0
+            # import analyze_tweets
+            from .analyze_sentiment import analyze_tweets
 
-        # Analyze all tweets
-        for tweet in self.current_tweets:
-            sentiment, score, matched_words = analyze_sentiment(tweet.split())
-            total_score += score
+            # call analysis
+            analysis_result = analyze_tweets(self.current_tweets, self.current_keyword)
 
-            if sentiment == "Positive":
-                positive_count += 1
-            elif sentiment == "Negative":
-                negative_count += 1
+            if analysis_result.get("success"):
+                self.output_text.insert(tk.END, "—" * 60 + "\n", "muted")
+                self.append_output("SENTIMENT ANALYSIS RESULTS", "title")
+                self.output_text.insert(tk.END, "—" * 60 + "\n", "muted")
+
+                # Decide whether to show detailed results; avoid modal dialogs in this environment
+                show_details = True if len(self.current_tweets) <= 5 else False
+
+                if show_details and analysis_result.get("detailed_results"):
+                    self.append_output("\nDETAILED ANALYSIS:", "title")
+                    self.output_text.insert(tk.END, "—" * 40 + "\n", "muted")
+
+                    for i, res in enumerate(analysis_result["detailed_results"], 1):
+                        sentiment = res.get("sentiment", "Unknown")
+                        score = res.get("score", 0.0)
+                        text = res.get("text", "")
+                        matched = res.get("matched_words", [])
+                        tag = "pos" if sentiment.lower().startswith("pos") else "neg" if sentiment.lower().startswith("neg") else None
+                        self.append_output(f"Tweet {i}: {sentiment} (Score: {score:.2f})", tag)
+                        self.append_output(f"   Text: {text}")
+                        if matched:
+                            self.append_output(f"   Key words: {', '.join(matched)}")
+                        self.append_output("")
+
+                # style: color-coded and sentiment scale ---
+                counts = analysis_result.get("sentiment_counts", {})
+                # map common keys to pos/neg
+                pos = counts.get("Positive", 0) + counts.get("positive", 0) + counts.get("Pos", 0)
+                neg = counts.get("Negative", 0) + counts.get("negative", 0) + counts.get("Neg", 0)
+                # fallback: if detailed_results exist, derive counts there
+                if pos == 0 and neg == 0 and analysis_result.get("detailed_results"):
+                    for d in analysis_result["detailed_results"]:
+                        s = (d.get("sentiment") or "").lower()
+                        if s.startswith("pos"):
+                            pos += 1
+                        elif s.startswith("neg"):
+                            neg += 1
+
+                total = max(1, pos + neg)
+                score = round((pos - neg) / total, 2)
+
+                # header
+                self.output_text.insert(tk.END, "\n", ())
+                self.output_text.insert(tk.END, "Analysis Summary:\n", "title")
+                self.output_text.insert(tk.END, "—" * 16 + "\n", "muted")
+
+                # numbers + verdict (color coded)
+                verdict = "Overall Positive" if score > 0 else "Overall Negative" if score < 0 else "mixed/neutral"
+                verdict_tag = "pos" if score >= 0 else "neg"
+                self.append_output(f"Positives={pos}, Negatives={neg}, Score={score}", verdict_tag)
+
+                # ascii/visual bar
+                bar_len = 24
+                pos_blocks = int((pos / total) * bar_len) if total > 0 else 0
+                pos_blocks = max(0, min(bar_len, pos_blocks))
+                bar = f"[{'▮' * pos_blocks}{'▯' * (bar_len - pos_blocks)}]  {int((pos/total)*100)}% positive"
+                self.append_output(bar, "muted")
+
+                # verdict line color-coded
+                self.append_output(verdict, verdict_tag)
+
+                # end separator
+                self.output_text.insert(tk.END, "—" * 60 + "\n", "muted")
+                
+                # Update charts after analysis
+                self.update_charts()
             else:
-                neutral_count += 1
-
-        # Calculate positivity score
-        total_tweets = len(self.current_tweets)
-        positivity_score = (positive_count / total_tweets) * 100 if total_tweets > 0 else 0
-
-        # Display comprehensive analysis
-        self.append_output("Comprehensive Sentiment Analysis Results:", "title")
-        self.append_output("", "separator")
-        self.append_output(f"Total Tweets Analyzed: {total_tweets}", "muted")
-        self.append_output(f"Positive Tweets: {positive_count}", "pos")
-        self.append_output(f"Negative Tweets: {negative_count}", "neg")
-        self.append_output(f"Neutral Tweets: {neutral_count}", "neutral")
-        self.append_output(f"Overall Sentiment Score: {total_score}", "muted")
-        self.append_output(f"Positivity Score: {positivity_score:.2f}%", "title")
-        self.append_output("", "separator")
-
-        # Display final message
-        self.append_output("Sentiment analysis complete!", "title")
+                self.append_output(f"Analysis failed: {analysis_result.get('message', 'Unknown error')}", "neg")
+        except ImportError as ie:
+            self.append_output(f"Import error: {ie}", "neg")
+            messagebox.showerror("Import Error", f"Could not import sentiment analysis: {ie}")
+        except Exception as e:
+            self.append_output(f"Error during analysis or display: {e}", "neg") # Log error during analysis/display.
+            messagebox.showerror("Analysis Error", f"Failed to analyze or display sentiment: {e}") # Show pop-up error.
+            
+        finally:
+            # Re-enable combined button and restore color.
+            try:
+                self.fetch_analyze_button.config(state=tk.NORMAL, bg=BTN_BG)
+            except Exception:
+                pass
+            self.append_output("\n--- PROCESS COMPLETE ---", "title")
