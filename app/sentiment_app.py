@@ -292,7 +292,7 @@ class SentimentAnalysisApp:
         except Exception:
             pass
 
-        self.append_output(f"🔍 Fetching tweets for: {kw} ...", "muted")
+        self.append_output(f"Fetching tweets for: {kw} ...", "muted")
 
         try:
             # Try live fetch first; if it fails (credentials missing or API error), fall back to sample tweets
