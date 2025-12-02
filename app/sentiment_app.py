@@ -8,7 +8,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 
-from .sample_tweets import generate_sample_tweets  # Use sample tweets instead
+# from .sample_tweets import generate_sample_tweets  # Use sample tweets instead
 from .fetch_tweets import fetch_tweets_for_ui  # Real API fetcher
 from .chart_sentiment import create_sentiment_charts
 from .analyze_sentiment import analyze_sentiment  # Import analyze_sentiment function
@@ -295,12 +295,12 @@ class SentimentAnalysisApp:
         self.append_output(f"Fetching tweets for: {kw} ...", "muted")
 
         try:
-            # Try live fetch first; if it fails (credentials missing or API error), fall back to sample tweets
+            # Try live fetch only - no sample tweets fallback
             result = fetch_tweets_for_ui(kw, count=50)
-            if not result.get("success"):
-                # fallback when credentials missing or API error
-                self.append_output("Live fetch failed or credentials missing; falling back to sample tweets.", "muted")
-                result = generate_sample_tweets(kw, count=6)
+            # if not result.get("success"):
+            #     # fallback when credentials missing or API error
+            #     self.append_output("Live fetch failed or credentials missing; falling back to sample tweets.", "muted")
+            #     result = generate_sample_tweets(kw, count=6)
 
             if result and result.get("success"):
                 raw = result.get("tweets", [])
